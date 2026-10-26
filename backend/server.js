@@ -1,12 +1,13 @@
 /**
- * StockGuardPro — Server (S03 build)
- * Wires all middleware in the correct order.
+ * StockGuardPro — Server (S28 build)
+ * Wires all middleware, routes, and Socket.IO.
  */
 require('dotenv').config();
 
 const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
+const { createServer } = require('http');
 
 const ENV = require('./config/environment');
 const { connectDB } = require('./config/db');
@@ -19,10 +20,14 @@ const { branchContext } = require('./middleware/branchContext');
 const requestLogger = require('./middleware/requestLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
 
+// Socket.IO
+const { initSocket } = require('./config/socket');
+
 // Routes
 const healthRoute = require('./routes/health');
 
 const app = express();
+const httpServer = createServer(app);
 
 // ============================================================
 // 1. Security headers (helmet)
@@ -34,16 +39,15 @@ app.use(helmet({
             scriptSrc: ["'self'"],
             styleSrc: ["'self'", "'unsafe-inline'"],
             imgSrc: ["'self'", 'data:', 'https:'],
-            connectSrc: ["'self'"],
+            connectSrc: ["'self'", 'ws:', 'wss:'],
             fontSrc: ["'self'", 'https:', 'data:'],
             objectSrc: ["'none'"],
             frameAncestors: ["'none'"]
         }
-    } : false, // Disable CSP in dev for convenience
+    } : false,
     crossOriginEmbedderPolicy: false
 }));
 
-// Disable x-powered-by
 app.disable('x-powered-by');
 
 // ============================================================
@@ -84,32 +88,50 @@ app.use('/api', globalLimiter);
 app.use(branchContext);
 
 // ============================================================
-// 8. Routes
+// 8. Socket.IO (initialize BEFORE routes so req.io is available)
 // ============================================================
-// 8. Routes
+const io = initSocket(httpServer);
+app.set('io', io);
+app.use((req, res, next) => {
+    req.io = io;
+    next();
+});
+
+// ============================================================
+// 9. Routes
 // ============================================================
 app.use('/api/health', healthRoute);
+
+// Auth
 app.use('/api/auth', require('./routes/shared/auth'));
+
+// Employer
 app.use('/api/branches', require('./routes/employer/branches'));
 app.use('/api/warehouses', require('./routes/employer/warehouses'));
 app.use('/api/users', require('./routes/employer/users'));
+app.use('/api/audit', require('./routes/employer/audit'));
+
+// Employee
 app.use('/api/inventory', require('./routes/employee/stock/inventory'));
 app.use('/api/receipts', require('./routes/employee/sales/receipts'));
 app.use('/api/withdrawals', require('./routes/employee/sales/withdrawals'));
 app.use('/api/cashier', require('./routes/employee/cashier/payments'));
 app.use('/api/pre-records', require('./routes/employee/shop_buyer/pre-records'));
 app.use('/api/inventory-mode', require('./routes/employee/manager/inventory-mode'));
+
+// Shared
 app.use('/api/attendance', require('./routes/shared/attendance'));
 app.use('/api/salary', require('./routes/shared/salary'));
 app.use('/api/customers', require('./routes/shared/customers'));
 app.use('/api/dashboard', require('./routes/shared/dashboard'));
+
 // ============================================================
-// 9. 404 handler (must be before error handler)
+// 10. 404 handler (must be before error handler)
 // ============================================================
 app.use(notFoundHandler);
 
 // ============================================================
-// 10. Error handler (must be last)
+// 11. Error handler (must be last)
 // ============================================================
 app.use(errorHandler);
 
@@ -123,7 +145,7 @@ async function start() {
         ENV.validate();
         await connectDB();
 
-        app.listen(PORT, () => {
+        httpServer.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`, {
                 mode: ENV.mode,
                 env: process.env.NODE_ENV || 'development',
@@ -133,6 +155,10 @@ async function start() {
                     rateLimit: true,
                     sanitize: true,
                     branchContext: true
+                },
+                socketIO: {
+                    enabled: true,
+                    rooms: ['company', 'branch', 'user']
                 }
             });
         });

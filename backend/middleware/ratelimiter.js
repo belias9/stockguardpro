@@ -9,7 +9,7 @@ const logger = require('../utils/logger');
 // Global limiter (all routes)
 // ============================================================
 const globalLimiter = rateLimit({
-    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000, // 15 min
+    windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
     max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
     standardHeaders: true,
     legacyHeaders: false,
@@ -40,6 +40,7 @@ const authLimiter = rateLimit({
         const email = req.body?.email || req.body?.name || 'unknown';
         return `${req.ip}-${email}`;
     },
+    validate: { keyGeneratorIpFallback: false },  // ✅ bypass IPv6 warning
     handler: (req, res) => {
         logger.warn('[Rate Limit] Auth limit hit', {
             ip: req.ip,
@@ -62,6 +63,7 @@ const aiLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+    validate: { keyGeneratorIpFallback: false },  // ✅ bypass IPv6 warning
     handler: (req, res) => {
         logger.warn('[Rate Limit] AI limit hit', {
             userId: req.user?._id?.toString(),
@@ -76,7 +78,6 @@ const aiLimiter = rateLimit({
 
 // ============================================================
 // Write limiter — for create/update/delete actions
-// 60 per hour per user
 // ============================================================
 const writeLimiter = rateLimit({
     windowMs: 60 * 60 * 1000,
@@ -84,6 +85,7 @@ const writeLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+    validate: { keyGeneratorIpFallback: false },  // ✅ bypass IPv6 warning
     handler: (req, res) => {
         logger.warn('[Rate Limit] Write limit hit', {
             userId: req.user?._id?.toString(),
@@ -105,6 +107,7 @@ const exportLimiter = rateLimit({
     standardHeaders: true,
     legacyHeaders: false,
     keyGenerator: (req) => req.user?._id?.toString() || req.ip,
+    validate: { keyGeneratorIpFallback: false },  // ✅ bypass IPv6 warning
     handler: (req, res) => {
         logger.warn('[Rate Limit] Export limit hit', {
             userId: req.user?._id?.toString()
