@@ -100,6 +100,9 @@ app.use('/api/cashier', require('./routes/employee/cashier/payments'));
 app.use('/api/pre-records', require('./routes/employee/shop_buyer/pre-records'));
 app.use('/api/inventory-mode', require('./routes/employee/manager/inventory-mode'));
 app.use('/api/attendance', require('./routes/shared/attendance'));
+app.use('/api/salary', require('./routes/shared/salary'));
+app.use('/api/customers', require('./routes/shared/customers'));
+app.use('/api/dashboard', require('./routes/shared/dashboard'));
 // ============================================================
 // 9. 404 handler (must be before error handler)
 // ============================================================
