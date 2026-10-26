@@ -95,6 +95,9 @@ app.use('/api/warehouses', require('./routes/employer/warehouses'));
 app.use('/api/users', require('./routes/employer/users'));
 app.use('/api/inventory', require('./routes/employee/stock/inventory'));
 app.use('/api/receipts', require('./routes/employee/sales/receipts'));
+app.use('/api/withdrawals', require('./routes/employee/sales/withdrawals'));
+app.use('/api/cashier', require('./routes/employee/cashier/payments'));
+
 // ============================================================
 // 9. 404 handler (must be before error handler)
 // ============================================================
