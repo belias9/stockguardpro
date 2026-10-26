@@ -92,7 +92,9 @@ app.use('/api/health', healthRoute);
 app.use('/api/auth', require('./routes/shared/auth'));
 app.use('/api/branches', require('./routes/employer/branches'));
 app.use('/api/warehouses', require('./routes/employer/warehouses'));
-
+app.use('/api/users', require('./routes/employer/users'));
+app.use('/api/inventory', require('./routes/employee/stock/inventory'));
+app.use('/api/receipts', require('./routes/employee/sales/receipts'));
 // ============================================================
 // 9. 404 handler (must be before error handler)
 // ============================================================
