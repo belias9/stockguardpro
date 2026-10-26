@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StockGuardPro</title>
+    <link rel="stylesheet" href="styles/main.css">
+    <!-- Font Awesome with CDN fallback -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
+      onerror="this.onerror=null;this.href='styles/fallback-fontawesome.css';">
+<style>
+    /* Fallback font */
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+</style>
+</head>
+<body>
+    <div id="app">
+        <div id="loading-screen" class="loading-screen"></div>
+        <div id="login-screen" class="screen hidden"></div>
+        <div id="main-dashboard" class="screen hidden"></div>
+        <div id="toast-container" class="toast-container"></div>
+        <div id="modal-container" class="modal-container hidden">
+            <div class="modal-overlay"></div>
+            <div class="modal-content" id="modal-content"></div>
+        </div>
+    </div>
+
+    <script src="http://localhost:5000/socket.io/socket.io.js"></script>
+
+    <!-- Core -->
+    <script src="js/core/config.js"></script>
+    <script src="js/core/auth.js"></script>
+    <script src="js/core/ui.js"></script>
+    <script src="js/core/partialLoader.js"></script>
+    <script src="js/core/apiClient.js"></script>
+    <script src="js/core/socket.js"></script>
+    <script src="js/core/router.js"></script>
+
+    <!-- Navigation -->
+    <script src="js/navigation/accessMap.js"></script>
+    <script src="js/navigation/menuConfig.js"></script>
+    <script src="js/navigation/index.js"></script>
+
+    <!-- App boot -->
+    <script src="js/app.js"></script>
+</body>
+</html>
