@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Environment
+.env
+.env.local
+.env.production
+.env.staging
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Builds
+dist/
+build/
+coverage/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Uploads
+uploads/
+backend/uploads/
+
+# Local database files
+mongo-data/
+data/
+
+# SSL certs
+certs/
+*.pem
+*.key
+
+# Backups
+backups/
+*.tar.gz
+
+# Test
+.nyc_output/
