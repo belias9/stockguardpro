@@ -21,7 +21,7 @@ async function log(req, options) {
             performedBy: req.user?._id || null,
             performedByName: req.user ? `${req.user.firstName || ''} ${req.user.lastName || ''}`.trim() : 'System',
             performedByRole: req.user?.role || 'system',
-            company: req.user?.company || options.company,
+            company: req.user?.company || options.company || req.body?.companyId || null,
             branch: req.branch || req.user?.branch || null,
             changes: options.changes || undefined,
             requestDetails: {

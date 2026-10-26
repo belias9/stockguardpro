@@ -86,12 +86,12 @@ app.use(branchContext);
 // ============================================================
 // 8. Routes
 // ============================================================
+// 8. Routes
+// ============================================================
 app.use('/api/health', healthRoute);
-
-// Future routes will go here:
-// app.use('/api/auth', require('./routes/shared/auth'));
-// app.use('/api/company', require('./routes/shared/company'));
-// ...
+app.use('/api/auth', require('./routes/shared/auth'));
+app.use('/api/branches', require('./routes/employer/branches'));
+app.use('/api/warehouses', require('./routes/employer/warehouses'));
 
 // ============================================================
 // 9. 404 handler (must be before error handler)
