@@ -97,7 +97,9 @@ app.use('/api/inventory', require('./routes/employee/stock/inventory'));
 app.use('/api/receipts', require('./routes/employee/sales/receipts'));
 app.use('/api/withdrawals', require('./routes/employee/sales/withdrawals'));
 app.use('/api/cashier', require('./routes/employee/cashier/payments'));
-
+app.use('/api/pre-records', require('./routes/employee/shop_buyer/pre-records'));
+app.use('/api/inventory-mode', require('./routes/employee/manager/inventory-mode'));
+app.use('/api/attendance', require('./routes/shared/attendance'));
 // ============================================================
 // 9. 404 handler (must be before error handler)
 // ============================================================
