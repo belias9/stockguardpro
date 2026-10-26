@@ -3,6 +3,13 @@ const menuConfig = {
         { label: 'Main', items: [
             { page: 'dashboard', icon: 'fa-tachometer-alt', label: 'Dashboard' }
         ]},
+        { label: 'Setup', items: [
+            { page: 'branches', icon: 'fa-code-branch', label: 'Branches' },
+            { page: 'warehouses', icon: 'fa-warehouse', label: 'Warehouses' }
+        ]},
+        { label: 'Users', items: [
+            { page: 'users', icon: 'fa-users', label: 'Users & Roles' }
+        ]},
         { label: 'Stock', items: [
             { page: 'inventory', icon: 'fa-boxes', label: 'Inventory' },
             { page: 'withdrawals', icon: 'fa-dolly', label: 'Withdrawals' },

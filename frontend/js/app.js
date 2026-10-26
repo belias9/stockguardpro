@@ -128,6 +128,14 @@ class StockGuardProApp {
     router.register('salary', pageSalary);
     router.register('messages', pageMessages);
     router.register('settings', pageSettings);
+
+    // Employer pages (registered for all — accessMap handles permissions)
+router.register('branches', pageBranches);
+router.register('warehouses', pageWarehouses);
+router.register('users', pageUsers);
+router.register('inventory', pageInventory);
+router.register('withdrawals', pageWithdrawals);
+router.register('receipts', pageReceipts);
     }
 }
 
