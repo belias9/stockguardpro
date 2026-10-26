@@ -64,6 +64,51 @@ app.use(cors({
 // ============================================================
 // 3. Body parsing (with size limit)
 // ============================================================
+// ============================================================
+// WhatsApp Webhook — MUST be before express.json()
+// Needs raw body for signature verification
+// ============================================================
+const whatsappService = require('./services/whatsappService');
+const webhookRaw = express.raw({ type: 'application/json', limit: '1mb' });
+
+app.get('/api/whatsapp/webhook', (req, res) => {
+    const mode = req.query['hub.mode'];
+    const token = req.query['hub.verify_token'];
+    const challenge = req.query['hub.challenge'];
+    if (mode === 'subscribe' && token === process.env.WHATSAPP_VERIFY_TOKEN) {
+        logger.info('[WhatsApp] Webhook verified');
+        return res.status(200).send(challenge);
+    }
+    res.sendStatus(403);
+});
+
+app.post('/api/whatsapp/webhook', webhookRaw, (req, res) => {
+    res.status(200).send('EVENT_RECEIVED');
+    const signature = req.headers['x-hub-signature-256'];
+    const rawBody = req.body.toString('utf8');
+    if (!whatsappService.verifyWebhookSignature(rawBody, signature)) {
+        logger.warn('[WhatsApp] Invalid webhook signature — dropped');
+        return;
+    }
+    try {
+        const body = JSON.parse(rawBody);
+        if (body.entry) {
+            for (const entry of body.entry) {
+                for (const change of entry.changes || []) {
+                    for (const message of change.value?.messages || []) {
+                        logger.info('[WhatsApp] Incoming', {
+                            from: message.from,
+                            type: message.type,
+                            text: message.text?.body?.substring(0, 100)
+                        });
+                    }
+                }
+            }
+        }
+    } catch (err) {
+        logger.error('[WhatsApp] Webhook parse error:', err.message);
+    }
+});
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
@@ -120,6 +165,9 @@ app.use('/api/pre-records', require('./routes/employee/shop_buyer/pre-records'))
 app.use('/api/inventory-mode', require('./routes/employee/manager/inventory-mode'));
 
 // Shared
+// Integrations
+app.use('/api/ai', require('./routes/shared/ai'));
+app.use('/api/whatsapp', require('./routes/shared/whatsapp'));
 app.use('/api/attendance', require('./routes/shared/attendance'));
 app.use('/api/salary', require('./routes/shared/salary'));
 app.use('/api/customers', require('./routes/shared/customers'));
