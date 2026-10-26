@@ -121,26 +121,13 @@ class StockGuardProApp {
     }
 
     registerPages() {
-        // Stub page for S31+S32 — real pages come in S35+
-        router.register('dashboard', {
-            render: async (container) => {
-                container.innerHTML = `
-                    <div class="card">
-                        <div class="card-header"><h3>Welcome, ${auth.user.firstName}!</h3></div>
-                        <div class="card-body">
-                            <p>You are logged in as <strong>${auth.user.role}</strong>.</p>
-                            <p class="text-muted mt-2">Pages for this role will be built in upcoming segments.</p>
-                            <div class="mt-4 p-3 rounded" style="background:var(--primary-light);">
-                                <p class="text-sm"><strong>Company:</strong> ${auth.company.name}</p>
-                                <p class="text-sm"><strong>User ID:</strong> ${auth.user.id}</p>
-                                <p class="text-sm"><strong>Employee ID:</strong> ${auth.user.employeeId || 'N/A'}</p>
-                                <p class="text-sm"><strong>Roles:</strong> ${(auth.user.activeRoles || []).join(', ') || 'employer'}</p>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }
-        });
+    // Shared pages
+    router.register('dashboard', pageDashboard);
+    router.register('ai', pageAI);
+    router.register('attendance', pageAttendance);
+    router.register('salary', pageSalary);
+    router.register('messages', pageMessages);
+    router.register('settings', pageSettings);
     }
 }
 
