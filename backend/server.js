@@ -151,6 +151,7 @@ app.use('/api/health', healthRoute);
 app.use('/api/auth', require('./routes/shared/auth'));
 
 // Employer
+app.use('/api/settings', require('./routes/employer/settings'));
 app.use('/api/branches', require('./routes/employer/branches'));
 app.use('/api/warehouses', require('./routes/employer/warehouses'));
 app.use('/api/users', require('./routes/employer/users'));

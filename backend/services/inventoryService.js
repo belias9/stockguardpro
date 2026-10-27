@@ -128,7 +128,19 @@ async function createItem(req, data) {
         itemCode: itemCode.toUpperCase()
     });
     if (existing) throw { status: 400, message: `Item code '${itemCode}' already exists in this warehouse` };
-
+    
+    const Customization = require('../models/Customization');
+    const custom = await Customization.getForCompany(req.user.company);
+    const catSlug = category.toLowerCase();
+    const validCategory = custom.categories.find(c => c.slug === catSlug || c.name.toLowerCase() === catSlug);
+    if (!validCategory) {
+        throw { status: 400, message: `Category '${category}' not defined. Add it in Settings.` };
+    }
+    const unitName = unit.toLowerCase();
+    const validUnit = custom.units.find(u => u.name.toLowerCase() === unitName || (u.abbreviation || '').toLowerCase() === unitName);
+    if (!validUnit) {
+        throw { status: 400, message: `Unit '${unit}' not defined. Add it in Settings.` };
+    }
     const item = new Inventory({
         company: req.user.company,
         branch: warehouse.branch,
@@ -199,8 +211,33 @@ async function updateItem(req, id, data) {
 
     if (data.name !== undefined) item.name = data.name;
     if (data.description !== undefined) item.description = data.description;
-    if (data.category !== undefined) item.category = data.category.toLowerCase();
-    if (data.unit !== undefined) item.unit = data.unit.toLowerCase();
+       // Validate category/unit changes
+    if (data.category !== undefined || data.unit !== undefined) {
+        const Customization = require('../models/Customization');
+        const custom = await Customization.getForCompany(req.user.company);
+
+        if (data.category !== undefined) {
+            const catSlug = data.category.toLowerCase();
+            const validCategory = custom.categories.find(c =>
+                c.slug === catSlug || c.name.toLowerCase() === catSlug
+            );
+            if (!validCategory) {
+                throw { status: 400, message: `Category '${data.category}' not defined.` };
+            }
+            item.category = catSlug;
+        }
+
+        if (data.unit !== undefined) {
+            const unitName = data.unit.toLowerCase();
+            const validUnit = custom.units.find(u =>
+                u.name.toLowerCase() === unitName || (u.abbreviation || '').toLowerCase() === unitName
+            );
+            if (!validUnit) {
+                throw { status: 400, message: `Unit '${data.unit}' not defined.` };
+            }
+            item.unit = unitName;
+        }
+    }
     if (data.unitCost !== undefined) item.unitCost = parseFloat(data.unitCost);
     if (data.sellingPrice !== undefined) item.sellingPrice = parseFloat(data.sellingPrice);
     if (data.minStockLevel !== undefined) item.minStockLevel = parseInt(data.minStockLevel);
