@@ -168,6 +168,7 @@ app.use('/api/inventory-mode', require('./routes/employee/manager/inventory-mode
 // Integrations
 app.use('/api/ai', require('./routes/shared/ai'));
 app.use('/api/whatsapp', require('./routes/shared/whatsapp'));
+app.use('/api/communication', require('./routes/shared/communication'));
 app.use('/api/attendance', require('./routes/shared/attendance'));
 app.use('/api/salary', require('./routes/shared/salary'));
 app.use('/api/customers', require('./routes/shared/customers'));

@@ -14,11 +14,13 @@ const menuConfig = {
             { page: 'inventory', icon: 'fa-boxes', label: 'Inventory' },
             { page: 'withdrawals', icon: 'fa-dolly', label: 'Withdrawals' },
             { page: 'receipts', icon: 'fa-receipt', label: 'Receipts' },
+            { page: 'inventory-mode', icon: 'fa-clipboard-check', label: 'Inventory Mode' },
             { page: 'low-stock', icon: 'fa-exclamation-triangle', label: 'Low Stock' }
         ]},
         { label: 'Workforce', items: [
             { page: 'attendance', icon: 'fa-fingerprint', label: 'Attendance' },
             { page: 'salary', icon: 'fa-money-bill-wave', label: 'Salary' },
+            { page: 'customers', icon: 'fa-user-friends', label: 'Customers' },
             { page: 'employees', icon: 'fa-users', label: 'Employees' }
         ]},
         { label: 'Communication', items: [
@@ -26,6 +28,7 @@ const menuConfig = {
         ]},
         { label: 'Admin', items: [
             { page: 'audit', icon: 'fa-clipboard-list', label: 'Audit Trail' },
+        { page: 'reports', icon: 'fa-chart-pie', label: 'Reports' },
             { page: 'settings', icon: 'fa-cog', label: 'Settings' }
         ]}
     ],
