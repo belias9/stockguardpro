@@ -21,7 +21,7 @@ const menuConfig = {
             { page: 'attendance', icon: 'fa-fingerprint', label: 'Attendance' },
             { page: 'salary', icon: 'fa-money-bill-wave', label: 'Salary' },
             { page: 'customers', icon: 'fa-user-friends', label: 'Customers' },
-            { page: 'employees', icon: 'fa-users', label: 'Employees' }
+            { page: 'users', icon: 'fa-users', label: 'Employees' },
         ]},
         { label: 'Communication', items: [
             { page: 'messages', icon: 'fa-envelope', label: 'Messages' }

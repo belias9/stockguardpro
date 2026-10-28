@@ -174,6 +174,7 @@ app.use('/api/attendance', require('./routes/shared/attendance'));
 app.use('/api/salary', require('./routes/shared/salary'));
 app.use('/api/customers', require('./routes/shared/customers'));
 app.use('/api/dashboard', require('./routes/shared/dashboard'));
+app.use('/api/sync', require('./routes/shared/sync'));
 
 // ============================================================
 // 10. 404 handler (must be before error handler)
@@ -220,5 +221,9 @@ async function start() {
         process.exit(1);
     }
 }
-
+ // Start sync worker if in local mode
+if (process.env.APP_MODE === 'local') {
+    const syncService = require('./services/syncService');
+    syncService.startSyncWorker();
+}
 start();

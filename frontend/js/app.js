@@ -114,8 +114,9 @@ class StockGuardProApp {
                 router.navigate(link.dataset.page);
             });
         });
-
+        
         initSocket();
+        syncManager.start();
         this.registerPages();
         router.navigate('dashboard');
     }
@@ -133,6 +134,7 @@ class StockGuardProApp {
     router.register('branches', pageBranches);
     router.register('warehouses', pageWarehouses);
     router.register('users', pageUsers);
+    router.register('employees', pageUsers);
     router.register('inventory', pageInventory);
     router.register('withdrawals', pageWithdrawals);
     router.register('receipts', pageReceipts);
