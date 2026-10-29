@@ -1,25 +1,59 @@
-const access = {
+﻿const access = {
     canAccess(page) {
         if (!auth.user) return false;
-        if (auth.user.role === 'employer') return true;
 
-        const shared = ['dashboard', 'ai', 'attendance', 'salary', 'messages'];
+        const { role } = auth.user;
+        const activeRoles = auth.user.activeRoles || [];
+        const fn = activeRoles;
+
+        // Employer → everything
+        if (role === 'employer') return true;
+
+        // Shared pages (all employees)
+        const shared = [
+            'dashboard', 'ai', 'attendance', 'salary', 'messages',
+            'browse-inventory', 'settings'
+        ];
         if (shared.includes(page)) return true;
 
-        const fn = auth.user.activeRoles || [];
+        // Function-specific pages
         const map = {
-            inventory: ['stock', 'manager'].includes(fn[0]) || fn.includes('stock') || fn.includes('manager'),
+            // Stock
+            'stock-ops': fn.includes('stock'),
+            'inventory': fn.includes('stock') || fn.includes('manager'),
             'low-stock': fn.includes('stock') || fn.includes('manager'),
-            withdrawals: fn.includes('manager') || fn.includes('sales'),
-            receipts: fn.includes('sales') || fn.includes('manager') || fn.includes('cashier'),
-            employees: fn.includes('manager'),
-            generate: fn.includes('accounting') || fn.includes('manager'),
-            advances: fn.includes('accounting') || fn.includes('manager'),
-            audit: false,
-            settings: false,
-            reports: false,
-            'inventory-mode': fn.includes('manager') || fn.includes('stock')
+            'adjust': fn.includes('stock'),
+
+            // Manager
+            'manager-approvals': fn.includes('manager'),
+            'employees': fn.includes('manager'),
+            'withdrawals': fn.includes('manager') || fn.includes('sales'),
+
+            // Cashier
+            'cashier': fn.includes('cashier') || fn.includes('manager'),
+
+            // Sales
+            'sales': fn.includes('sales') || fn.includes('manager'),
+            'receipts': fn.includes('sales') || fn.includes('manager') || fn.includes('cashier'),
+
+            // Shop buyer
+            'shop-buyer': fn.includes('shop_buyer') || fn.includes('manager'),
+
+            // Accounting
+            'generate': fn.includes('accounting') || fn.includes('manager'),
+            'advances': fn.includes('accounting') || fn.includes('manager'),
+
+            // Never for employees
+            'audit': false,
+            'reports': false,
+            'branches': false,
+            'warehouses': false,
+            'users': false,
+            'inventory-mode': fn.includes('manager'),
+            'customers': fn.includes('manager') || fn.includes('sales'),
+            'end-of-day': false
         };
+
         return map[page] || false;
     }
 };

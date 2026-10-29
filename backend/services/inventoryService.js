@@ -13,7 +13,9 @@ const auditHelper = require('../utils/auditHelper');
 function getViewerRole(user) {
     if (user.role === 'employer') return 'employer';
     if (user.activeRoles?.includes('manager')) return 'manager';
-    if (user.activeRoles?.includes('stock')) return 'stock_main';
+    if (user.activeRoles?.includes('stock')) {
+        return user.isMainStock ? 'stock_main' : 'stock_assist';
+    }
     if (user.activeRoles?.includes('cashier')) return 'cashier';
     if (user.activeRoles?.includes('sales')) return 'sales';
     if (user.activeRoles?.includes('shop_buyer')) return 'shop_buyer';

@@ -34,13 +34,14 @@ class UsersPage {
     renderTable() {
         const c = document.getElementById('users-table');
         if (!this.users.length) { c.innerHTML = ui.emptyState('No users yet', 'fa-users'); return; }
-        const headers = [
+       const headers = [
             { key: 'employeeId', label: 'ID', format: v => v || '-' },
             { key: 'firstName', label: 'First Name' },
             { key: 'lastName', label: 'Last Name' },
             { key: 'email', label: 'Email' },
             { key: 'role', label: 'Role' },
             { key: 'activeRoles', label: 'Functions', format: v => (v || []).join(', ') || '-' },
+            { key: 'isMainStock', label: 'Main Stock', format: v => v ? '<span class="status-badge completed">⭐ Main</span>' : '-' },
             { key: 'branch', label: 'Branch', format: v => v?.name || '-' },
             { key: 'isActive', label: 'Status', format: v => v ? '<span class="status-badge completed">Active</span>' : '<span class="status-badge rejected">Inactive</span>' }
         ];
@@ -105,33 +106,66 @@ class UsersPage {
         document.getElementById('fn-fields').style.display = role === 'employee' ? 'block' : 'none';
     }
 
-    showEdit(index) {
-        const u = this.users[index];
-        if (!u) return;
-        this.editingId = u._id;
-        const fn = ['manager','cashier','shop_buyer','stock','sales','none'];
-        const content = `
-            <form id="user-form">
-                <div class="grid-2 gap-3">
-                    <div class="form-group"><label>First Name</label><input type="text" id="u-first" value="${u.firstName}"></div>
-                    <div class="form-group"><label>Last Name</label><input type="text" id="u-last" value="${u.lastName}"></div>
+   showEdit(index) {
+    const u = this.users[index];
+    if (!u) return;
+    this.editingId = u._id;
+    const allRoles = ['manager','cashier','shop_buyer','stock','sales','none'];
+    const assignedRoles = u.roles || [];
+    const activeRoles = u.activeRoles || [];
+
+    const content = `
+        <form id="user-form">
+            <div class="grid-2 gap-3">
+                <div class="form-group"><label>First Name</label><input type="text" id="u-first" value="${u.firstName}"></div>
+                <div class="form-group"><label>Last Name</label><input type="text" id="u-last" value="${u.lastName}"></div>
+            </div>
+            <div class="form-group"><label>Phone</label><input type="tel" id="u-phone" value="${u.phone || ''}"></div>
+            <div class="form-group"><label>Base Salary</label><input type="number" id="u-salary" value="${u.baseSalary || 0}" min="0"></div>
+
+            <div class="form-group">
+                <label>Assign / Remove Roles</label>
+                <p class="text-xs text-muted mb-2">Check a role to assign it. Uncheck to remove. The "Active" toggle pauses a role without removing it.</p>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr><th>Function</th><th>Assigned</th><th>Active Now</th></tr>
+                        </thead>
+                        <tbody>
+                            ${allRoles.filter(r => r !== 'none').map(fn => `
+                                <tr>
+                                    <td class="capitalize">${fn.replace('_', ' ')}</td>
+                                    <td><input type="checkbox" class="assign-role" value="${fn}" ${assignedRoles.includes(fn) ? 'checked' : ''}></td>
+                                    <td><input type="checkbox" class="active-role" value="${fn}" ${activeRoles.includes(fn) ? 'checked' : ''} ${assignedRoles.includes(fn) ? '' : 'disabled'}></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
                 </div>
-                <div class="form-group"><label>Phone</label><input type="tel" id="u-phone" value="${u.phone || ''}"></div>
-                <div class="form-group">
-                    <label>Functions</label>
-                    <div class="flex flex-wrap gap-2">
-                        ${fn.map(f => `<label class="flex items-center gap-1 text-sm"><input type="checkbox" class="u-fn" value="${f}" ${(u.activeRoles || []).includes(f) ? 'checked' : ''}> ${f}</label>`).join('')}
-                    </div>
-                </div>
-                <div class="form-group"><label>Base Salary</label><input type="number" id="u-salary" value="${u.baseSalary || 0}"></div>
-            </form>
-        `;
-        const footer = `
-            <button class="btn btn-secondary" onclick="ui.closeModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="pageUsers.save()"><i class="fas fa-save"></i> Save</button>
-        `;
-        ui.showModal('Edit User', content, footer);
-    }
+            </div>
+
+            <div class="form-group">
+                <label><input type="checkbox" id="u-main-stock" ${u.isMainStock ? 'checked' : ''}> ⭐ Main Stock Personnel (sees cost, can dispatch)</label>
+            </div>
+        </form>
+    `;
+    const footer = `
+        <button class="btn btn-secondary" onclick="ui.closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="pageUsers.update()"><i class="fas fa-save"></i> Save Changes</button>
+    `;
+    ui.showModal('Edit User', content, footer);
+
+    // Enable/disable active checkbox based on assign checkbox
+    document.querySelectorAll('.assign-role').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+            const activeCb = document.querySelector(`.active-role[value="${e.target.value}"]`);
+            if (activeCb) {
+                activeCb.disabled = !e.target.checked;
+                if (!e.target.checked) activeCb.checked = false;
+            }
+        });
+    });
+}
 
     async save() {
         if (this.editingId) {
@@ -159,6 +193,7 @@ class UsersPage {
                 password: document.getElementById('u-pass').value,
                 role: document.getElementById('u-role').value,
                 roles: roles.length ? roles : undefined,
+                isMainStock: document.getElementById('u-main-stock').checked,
                 branchId: document.getElementById('u-branch').value || undefined,
                 baseSalary: parseFloat(document.getElementById('u-salary').value) || 0
             };

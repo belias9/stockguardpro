@@ -27,50 +27,60 @@
 
     <script src="http://localhost:5000/socket.io/socket.io.js"></script>
 
-    <!-- Core -->
-    <script src="js/core/config.js"></script>
-    <script src="js/core/auth.js"></script>
-    <script src="js/core/ui.js"></script>
-    <script src="js/core/partialLoader.js"></script>
-    <script src="js/core/apiClient.js"></script>
-    <script src="js/core/socket.js"></script>
-    <script src="js/core/router.js"></script>
+<!-- Core -->
+<script src="js/core/config.js"></script>
+<script src="js/core/auth.js"></script>
+<script src="js/core/ui.js"></script>
+<script src="js/core/partialLoader.js"></script>
+<script src="js/core/apiClient.js"></script>
+<script src="js/core/socket.js"></script>
+<script src="js/core/router.js"></script>
+<script src="js/core/sync.js"></script>
+<script src="js/core/utils.js"></script>
 
-    <!-- Navigation -->
-    <script src="js/navigation/accessMap.js"></script>
-    <script src="js/navigation/menuConfig.js"></script>
-    <script src="js/navigation/index.js"></script>
+<!-- Navigation -->
+<script src="js/navigation/accessMap.js"></script>
+<script src="js/navigation/menuConfig.js"></script>
+<script src="js/navigation/index.js"></script>
 
-    <!-- App boot -->
-     <!-- Shared pages -->
-<script src="js/pages/shared/dashboardPage.js"></script>
-<script src="js/pages/shared/aiPage.js"></script>
-<script src="js/pages/shared/attendancePage.js"></script>
-<script src="js/pages/shared/salaryPage.js"></script>
-<script src="js/pages/shared/messagesPage.js"></script>
-
-<!-- API modules -->
+<!-- API - Shared -->
 <script src="js/api/shared/authApi.js"></script>
 <script src="js/api/shared/dashboardApi.js"></script>
 <script src="js/api/shared/attendanceApi.js"></script>
 <script src="js/api/shared/salaryApi.js"></script>
 <script src="js/api/shared/communicationApi.js"></script>
 <script src="js/api/shared/aiApi.js"></script>
+<script src="js/api/shared/customersApi.js"></script>
+<script src="js/api/shared/deviceApi.js"></script>
+
+<!-- API - Employer -->
 <script src="js/api/employer/usersApi.js"></script>
 <script src="js/api/employer/branchesApi.js"></script>
 <script src="js/api/employer/inventoryApi.js"></script>
-<script src="js/api/employer/receiptsApi.js"></script>
 <script src="js/api/employer/withdrawalsApi.js"></script>
+<script src="js/api/employer/receiptsApi.js"></script>
 <script src="js/api/employer/auditApi.js"></script>
 <script src="js/api/employer/inventoryModeApi.js"></script>
-<script src="js/api/shared/customersApi.js"></script> 
 <script src="js/api/employer/settingsApi.js"></script>
 
-<!-- Employer pages -->
+<!-- API - Employee -->
+<script src="js/api/employee/cashierApi.js"></script>
+<script src="js/api/employee/preRecordApi.js"></script>
+
+<!-- Pages - Shared -->
+<script src="js/pages/shared/dashboardPage.js"></script>
+<script src="js/pages/shared/aiPage.js"></script>
+<script src="js/pages/shared/attendancePage.js"></script>
+<script src="js/pages/shared/salaryPage.js"></script>
+<script src="js/pages/shared/messagesPage.js"></script>
+<script src="js/pages/shared/inventoryBrowsePage.js"></script>
+
+<!-- Pages - Employer -->
 <script src="js/pages/employer/branchesPage.js"></script>
 <script src="js/pages/employer/warehousesPage.js"></script>
 <script src="js/pages/employer/usersPage.js"></script>
 <script src="js/pages/employer/inventoryPage.js"></script>
+<script src="js/pages/employer/lowStockPage.js"></script>
 <script src="js/pages/employer/withdrawalsPage.js"></script>
 <script src="js/pages/employer/receiptsPage.js"></script>
 <script src="js/pages/employer/inventoryModePage.js"></script>
@@ -78,8 +88,16 @@
 <script src="js/pages/employer/auditPage.js"></script>
 <script src="js/pages/employer/reportsPage.js"></script>
 <script src="js/pages/employer/settingsPage.js"></script>
+<script src="js/pages/employer/endOfDayPage.js"></script>
 
-    <script src="js/core/sync.js"></script>
-    <script src="js/app.js"></script>
+<!-- Pages - Employee Functions -->
+<script src="js/pages/stock/stockOpsPage.js"></script>
+<script src="js/pages/manager/managerApprovalsPage.js"></script>
+<script src="js/pages/cashier/cashierPage.js"></script>
+<script src="js/pages/sales/salesPage.js"></script>
+<script src="js/pages/shop_buyer/shopBuyerPage.js"></script>
+
+<!-- App -->
+<script src="js/app.js"></script>
 </body>
 </html>

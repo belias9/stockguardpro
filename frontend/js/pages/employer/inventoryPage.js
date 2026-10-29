@@ -137,18 +137,26 @@ class InventoryPage {
     }
 
     async update() {
+        const assignedRoles = Array.from(document.querySelectorAll('.assign-role:checked')).map(c => c.value);
+        const activeRoles = Array.from(document.querySelectorAll('.active-role:checked')).map(c => c.value);
+
+        const data = {
+            firstName: document.getElementById('u-first').value,
+            lastName: document.getElementById('u-last').value,
+            phone: document.getElementById('u-phone').value,
+            baseSalary: parseFloat(document.getElementById('u-salary').value) || 0,
+            isMainStock: document.getElementById('u-main-stock').checked,
+            roles: assignedRoles.length ? assignedRoles : ['none'],
+            activeRoles: activeRoles
+        };
+
         try {
-            await inventoryApi.update(this.editingId, {
-                name: document.getElementById('i-name').value,
-                unitCost: parseFloat(document.getElementById('i-cost').value),
-                sellingPrice: parseFloat(document.getElementById('i-price').value) || 0
-            });
+            await usersApi.update(this.editingId, data);
             ui.closeModal();
-            ui.showToast('success', 'Saved', 'Item updated');
+            ui.showToast('success', 'Updated', 'User updated');
             this.load();
         } catch (err) { ui.showToast('error', 'Error', err.message); }
     }
-
     showAdjust(index) {
         const it = this.items[index];
         if (!it) return;

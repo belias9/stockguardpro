@@ -263,9 +263,21 @@ async function dispatchWithdrawal(req, id, data) {
         throw { status: 400, message: `Cannot dispatch: status is '${withdrawal.status}'` };
     }
 
-    // Stock personnel can only dispatch from their own warehouse
-    if (req.user.role !== 'employer' && !req.user.activeRoles?.includes('stock')) {
-        throw { status: 403, message: 'Only stock personnel can dispatch' };
+        // Stock personnel can only dispatch from their own warehouse
+    // OLD:
+    // if (req.user.role !== 'employer' && !req.user.activeRoles?.includes('stock')) {
+    //     throw { status: 403, message: 'Only stock personnel can dispatch' };
+    // }
+
+    // NEW:
+    if (req.user.role !== 'employer') {
+        const isStockAssist = req.user.activeRoles?.includes('stock') && !req.user.isMainStock;
+        if (isStockAssist) {
+            throw { status: 403, message: 'Only main stock personnel can dispatch' };
+        }
+        if (!req.user.activeRoles?.includes('stock') && !req.user.activeRoles?.includes('manager')) {
+            throw { status: 403, message: 'Not authorized to dispatch' };
+        }
     }
 
     // Verify stock personnel is at the source warehouse's branch

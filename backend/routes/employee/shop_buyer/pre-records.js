@@ -1,4 +1,4 @@
-const express = require('express');
+﻿const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { protect, authorizeFunction } = require('../../../middleware/auth');
@@ -21,7 +21,7 @@ router.get('/:id', authorizeFunction('shop_buyer', 'stock', 'manager'), async (r
     catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
 });
 
-router.post('/', authorizeFunction('shop_buyer'), [
+router.post('/', authorizeFunction('shop_buyer', 'manager'), [
     body('items').isArray({ min: 1 }),
     body('warehouseId').notEmpty(),
     body('receiptImageUrl').notEmpty().withMessage('Receipt image required')

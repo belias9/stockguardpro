@@ -175,7 +175,8 @@ app.use('/api/salary', require('./routes/shared/salary'));
 app.use('/api/customers', require('./routes/shared/customers'));
 app.use('/api/dashboard', require('./routes/shared/dashboard'));
 app.use('/api/sync', require('./routes/shared/sync'));
-
+app.use('/api/company', require('./routes/shared/company'));
+app.use('/api/devices', require('./routes/shared/devices'));
 // ============================================================
 // 10. 404 handler (must be before error handler)
 // ============================================================
@@ -195,7 +196,8 @@ async function start() {
     try {
         ENV.validate();
         await connectDB();
-
+        const { startCronJobs } = require('./config/cron');
+        startCronJobs();
         httpServer.listen(PORT, () => {
             logger.info(`Server running on port ${PORT}`, {
                 mode: ENV.mode,
@@ -220,6 +222,7 @@ async function start() {
         console.error('===================================\n');
         process.exit(1);
     }
+
 }
  // Start sync worker if in local mode
 if (process.env.APP_MODE === 'local') {

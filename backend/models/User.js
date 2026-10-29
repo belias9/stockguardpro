@@ -119,10 +119,18 @@ const userSchema = new mongoose.Schema({
     },
 
     // ============ Salary (base) ============
-    baseSalary: {
+        baseSalary: {
         type: Number,
         default: 0,
         min: [0, 'Base salary cannot be negative']
+    },
+
+    // ✅ ADD THIS:
+    isMainStock: {
+        type: Boolean,
+        default: false
+        // Employer marks one stock employee per warehouse as "main"
+        // Main stock sees cost prices and can dispatch; assistants don't
     },
 
     // ============ Biometrics ============
@@ -172,6 +180,24 @@ const userSchema = new mongoose.Schema({
         type: String,
         default: null
     },
+        lastLoginIp: {
+        type: String,
+        default: null
+    },
+
+    // ✅ ADD THESE:
+    emailVerified: {
+        type: Boolean,
+        default: true
+        // Default true for backward compat — new users get false
+    },
+    verificationToken: { type: String, select: false },
+    verificationTokenExpires: { type: Date, select: false },
+    
+    resetToken: { type: String, select: false },
+    resetTokenExpires: { type: Date, select: false },
+    
+    passwordChangedAt: { type: Date, default: null },
     loginAttempts: {
         type: Number,
         default: 0,
@@ -419,6 +445,7 @@ userSchema.methods.toPublicJSON = function () {
         lastLogin: this.lastLogin,
         avatar: this.avatar,
         baseSalary: this.baseSalary,
+        isMainStock: this.isMainStock,
         createdAt: this.createdAt
     };
 };

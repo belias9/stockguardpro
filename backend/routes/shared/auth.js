@@ -99,4 +99,79 @@ router.post('/fingerprint/verify', [
     }
 });
 
+// ============================================================
+// POST /api/auth/forgot-password
+// ============================================================
+router.post('/forgot-password', authLimiter, [
+    body('email').isEmail().normalizeEmail()
+], validate, async (req, res, next) => {
+    try {
+        const result = await authService.forgotPassword(req, req.body.email);
+        res.json(result);
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ success: false, error: err.message });
+        next(err);
+    }
+});
+
+// ============================================================
+// POST /api/auth/reset-password/:token
+// ============================================================
+router.post('/reset-password/:token', [
+    body('newPassword').isLength({ min: 8 })
+], validate, async (req, res, next) => {
+    try {
+        const result = await authService.resetPassword(req, req.params.token, req.body.newPassword);
+        res.json(result);
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ success: false, error: err.message });
+        next(err);
+    }
+});
+
+// ============================================================
+// PUT /api/auth/change-password — requires auth
+// ============================================================
+const { protect } = require('../../middleware/auth');
+
+router.put('/change-password', protect, [
+    body('currentPassword').notEmpty(),
+    body('newPassword').isLength({ min: 8 })
+], validate, async (req, res, next) => {
+    try {
+        const result = await authService.changePassword(req, req.body.currentPassword, req.body.newPassword);
+        res.json(result);
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ success: false, error: err.message });
+        next(err);
+    }
+});
+
+// ============================================================
+// POST /api/auth/send-verification — requires auth
+// ============================================================
+router.post('/send-verification', protect, async (req, res, next) => {
+    try {
+        const result = await authService.sendVerificationEmail(req, req.user._id);
+        res.json(result);
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ success: false, error: err.message });
+        next(err);
+    }
+});
+
+// ============================================================
+// GET /api/auth/verify-email/:token
+// ============================================================
+router.get('/verify-email/:token', async (req, res, next) => {
+    try {
+        const result = await authService.verifyEmail(req, req.params.token);
+        res.json(result);
+    } catch (err) {
+        if (err.status) return res.status(err.status).json({ success: false, error: err.message });
+        next(err);
+    }
+});
+
+
 module.exports = router;

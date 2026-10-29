@@ -100,6 +100,7 @@ async function createUser(req, data) {
         activeRoles: role === 'employee' ? roles : [],
         branch: role === 'employee' ? branchId : null,
         baseSalary: role === 'employee' ? (parseFloat(baseSalary) || 0) : 0,
+        isMainStock: false,  // ✅ default false — set via update
         createdBy: req.user._id
     });
 
@@ -151,6 +152,20 @@ async function updateUser(req, id, data) {
     if (data.phone !== undefined) user.phone = data.phone;
     if (data.baseSalary !== undefined && user.role === 'employee') {
         user.baseSalary = parseFloat(data.baseSalary) || 0;
+    }
+        // Main stock flag
+    // Main stock flag
+    if (data.isMainStock !== undefined && user.role === 'employee') {
+        if (data.isMainStock && !user.roles.includes('stock')) {
+            throw { status: 400, message: 'User must have stock role to be main stock' };
+        }
+        user.isMainStock = !!data.isMainStock;
+        if (data.isMainStock && user.branch) {
+            await User.updateMany(
+                { company: user.company, branch: user.branch, _id: { $ne: user._id } },
+                { isMainStock: false }
+            );
+        }
     }
 
     // Branch (employees only)

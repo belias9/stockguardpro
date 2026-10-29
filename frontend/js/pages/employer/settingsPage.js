@@ -88,7 +88,73 @@ class SettingsPage {
                     <button class="btn btn-primary" onclick="pageSettings.saveTemplate()"><i class="fas fa-save"></i> Save Template</button>
                 </div>
             </div>
-        `;
+        
+            <div class="card mt-4">
+            <div class="card-header"><h3><i class="fas fa-fingerprint"></i> Attendance Device</h3></div>
+            <div class="card-body">
+                <div id="device-status">${ui.loader()}</div>
+                <div class="mt-3">
+                    <button class="btn btn-primary" onclick="pageSettings.registerDevice()"><i class="fas fa-plus"></i> Register This Phone</button>
+                </div>
+            </div>
+        </div>
+        <div class="card mt-4">
+    <div class="card-header"><h3><i class="fas fa-key"></i> Change Password</h3></div>
+    <div class="card-body">
+        <div class="form-group">
+            <label>Current Password</label>
+            <input type="password" id="cp-current">
+        </div>
+        <div class="form-group">
+            <label>New Password</label>
+            <input type="password" id="cp-new" minlength="8">
+        </div>
+        <div class="form-group">
+            <label>Confirm New Password</label>
+            <input type="password" id="cp-confirm">
+        </div>
+        <button class="btn btn-primary" onclick="pageSettings.changePassword()">
+            <i class="fas fa-save"></i> Change Password
+        </button>
+    </div>
+    </div>
+        `;  
+        this.loadDeviceStatus();
+    }
+
+    async loadDeviceStatus() {
+    try {
+        const res = await deviceApi.current();
+        const el = document.getElementById('device-status');
+        if (!el) return;
+        if (res.device) {
+            el.innerHTML = `
+                <div class="p-3 rounded" style="background:var(--success-light);">
+                    <p class="text-sm"><strong>Active:</strong> ${res.device.name}</p>
+                    <p class="text-xs text-muted">Device ID: ${res.device.deviceId}</p>
+                    <button class="btn btn-sm btn-danger mt-2" onclick="pageSettings.deactivateDevice('${res.device.id}')">Deactivate</button>
+                </div>`;
+        } else {
+            el.innerHTML = `<p class="text-muted">No device registered</p>`;
+        }
+    } catch (err) { console.error(err); }
+}
+
+    async registerDevice() {
+        const name = prompt('Device name:', 'Front Desk Phone');
+        if (!name) return;
+        try {
+            const deviceId = 'WEB_' + Date.now();
+            const res = await deviceApi.register({ name, deviceId, type: 'phone' });
+            alert(`Registered!\n\nAPI Key (save once):\n${res.apiKey}`);
+            this.loadDeviceStatus();
+        } catch (err) { ui.showToast('error', 'Error', err.message); }
+    }
+
+    async deactivateDevice(id) {
+        if (!confirm('Deactivate this device?')) return;
+        try { await deviceApi.remove(id); ui.showToast('success', 'Deactivated', 'Done'); this.loadDeviceStatus(); }
+        catch (err) { ui.showToast('error', 'Error', err.message); }
     }
 
     showAddCategory() {
@@ -141,6 +207,30 @@ class SettingsPage {
         if (!confirm(`Remove unit "${name}"?`)) return;
         try { await settingsApi.removeUnit(encodeURIComponent(name)); ui.showToast('success', 'Removed', 'Unit removed'); this.render(document.getElementById('page-content')); }
         catch (err) { ui.showToast('error', 'Error', err.message); }
+    }
+    async changePassword() {
+    const current = document.getElementById('cp-current').value;
+    const newP = document.getElementById('cp-new').value;
+    const confirm = document.getElementById('cp-confirm').value;
+    
+    if (newP !== confirm) {
+        ui.showToast('warning', 'Validation', 'Passwords do not match');
+        return;
+    }
+    if (newP.length < 8) {
+        ui.showToast('warning', 'Validation', 'Password must be 8+ characters');
+        return;
+    }
+    
+    try {
+        await authApi.changePassword(current, newP);
+        ui.showToast('success', 'Changed', 'Password updated');
+        document.getElementById('cp-current').value = '';
+        document.getElementById('cp-new').value = '';
+        document.getElementById('cp-confirm').value = '';
+    } catch (err) {
+        ui.showToast('error', 'Error', err.message);
+    }
     }
 
     showAddField() {
