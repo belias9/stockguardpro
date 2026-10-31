@@ -14,7 +14,7 @@ class StockGuardProApp {
         await partials.inject('company-login-step', 'login/company-step');
         await partials.inject('user-login-step', 'login/user-step');
         await partials.inject('register-step', 'login/register-step');
-        
+    
         await partials.inject('forgot-password-step', 'login/forgot-password-step');
         await partials.inject('reset-password-step', 'login/reset-password-step');
 
@@ -280,7 +280,9 @@ class StockGuardProApp {
     router.register('audit', pageAudit);
     router.register('reports', pageReports);
     router.register('end-of-day', pageEndOfDay);
-
+    router.register('branch-detail', pageBranchDetail);
+    router.register('employees-by-branch', pageEmployeesBranch);
+    
         // Employee function pages
     router.register('stock-ops', pageStockOps);
     router.register('manager-approvals', pageManagerApprovals);

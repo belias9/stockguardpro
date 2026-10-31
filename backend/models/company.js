@@ -61,7 +61,9 @@ const companySchema = new mongoose.Schema({
         },
         autoDeductAbsence: { type: Boolean, default: true },
         absenceDeductionRate: { type: Number, default: 0.1, min: 0, max: 1 },
-
+        autoDeductLate: { type: Boolean, default: true },
+        lateDeductionRate: { type: Number, default: 0.5 },  // % of daily rate per hour late
+        lateGraceMinutes: { type: Number, default: 15 },     // grace period before deducting
         // Receipt rules
         receiptWhatsAppThreshold: {
             type: Number,

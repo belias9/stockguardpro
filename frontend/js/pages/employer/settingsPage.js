@@ -88,57 +88,111 @@ class SettingsPage {
                     <button class="btn btn-primary" onclick="pageSettings.saveTemplate()"><i class="fas fa-save"></i> Save Template</button>
                 </div>
             </div>
-        
             <div class="card mt-4">
-            <div class="card-header"><h3><i class="fas fa-fingerprint"></i> Attendance Device</h3></div>
-            <div class="card-body">
-                <div id="device-status">${ui.loader()}</div>
-                <div class="mt-3">
-                    <button class="btn btn-primary" onclick="pageSettings.registerDevice()"><i class="fas fa-plus"></i> Register This Phone</button>
+                <div class="card-header"><h3><i class="fas fa-clock"></i> Attendance Settings</h3></div>
+                <div class="card-body">
+                    <div class="grid-2 gap-3">
+                        <div class="form-group"><label>Clock-in Time</label><input type="time" id="att-start" value="${c.settings?.workingHours?.start || '08:00'}"></div>
+                        <div class="form-group"><label>Clock-out Time</label><input type="time" id="att-end" value="${c.settings?.workingHours?.end || '17:00'}"></div>
+                    </div>
+                    <div class="grid-2 gap-3">
+                        <div class="form-group"><label>Absence Deduction (% per day)</label><input type="number" id="att-ded" min="0" max="100" value="${(c.settings?.absenceDeductionRate || 0.1) * 100}"></div>
+                        <div class="form-group"><label>Auto-Deduct Absence</label>
+                            <select id="att-auto">
+                                <option value="true" ${c.settings?.autoDeductAbsence ? 'selected' : ''}>Yes</option>
+                                <option value="false" ${!c.settings?.autoDeductAbsence ? 'selected' : ''}>No</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="grid-2 gap-3">
+                            <div class="form-group"><label>Late Deduction (% of daily rate per hour late)</label>
+                                <input type="number" id="att-late" min="0" max="100" value="${(c.settings?.lateDeductionRate || 0.5) * 100}"></div>
+                            <div class="form-group"><label>Auto-Deduct Late</label>
+                                <select id="att-late-auto">
+                                    <option value="true" ${c.settings?.autoDeductLate ? 'selected' : ''}>Yes</option>
+                                    <option value="false" ${!c.settings?.autoDeductLate ? 'selected' : ''}>No</option>
+                                </select>
+                            </div>
+                    </div>
+                    <div class="form-group"><label>Late Grace Period (minutes)</label>
+                            <input type="number" id="att-grace" min="0" value="${c.settings?.lateGraceMinutes || 15}">
+                            <small class="text-muted">No deduction if late by this many minutes or less</small>
+                    </div>
+                    <button class="btn btn-primary" onclick="pageSettings.saveAttendance()"><i class="fas fa-save"></i> Save</button>
                 </div>
             </div>
-        </div>
-        <div class="card mt-4">
-    <div class="card-header"><h3><i class="fas fa-key"></i> Change Password</h3></div>
-    <div class="card-body">
-        <div class="form-group">
-            <label>Current Password</label>
-            <input type="password" id="cp-current">
-        </div>
-        <div class="form-group">
-            <label>New Password</label>
-            <input type="password" id="cp-new" minlength="8">
-        </div>
-        <div class="form-group">
-            <label>Confirm New Password</label>
-            <input type="password" id="cp-confirm">
-        </div>
-        <button class="btn btn-primary" onclick="pageSettings.changePassword()">
-            <i class="fas fa-save"></i> Change Password
-        </button>
-    </div>
-    </div>
+            <div class="card mt-4">
+                <div class="card-header"><h3><i class="fas fa-fingerprint"></i> Attendance Device</h3></div>
+                <div class="card-body">
+                    <div id="device-status">${ui.loader()}</div>
+                    <div class="mt-3">
+                        <button class="btn btn-primary" onclick="pageSettings.registerDevice()"><i class="fas fa-plus"></i> Register This Phone</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card mt-4">
+                <div class="card-header"><h3><i class="fas fa-key"></i> Change Password</h3></div>
+                <div class="card-body">
+                        <div class="form-group">
+                            <label>Current Password</label>
+                            <input type="password" id="cp-current">
+                         </div>
+                         <div class="form-group">
+                            <label>New Password</label>
+                            <input type="password" id="cp-new" minlength="8">
+                        </div>
+                         <div class="form-group">
+                             <label>Confirm New Password</label>
+                             <input type="password" id="cp-confirm">
+                        </div>
+                         <button class="btn btn-primary" onclick="pageSettings.changePassword()">
+                             <i class="fas fa-save"></i> Change Password
+                        </button>
+                </div>
+            </div>
         `;  
         this.loadDeviceStatus();
     }
+    async saveAttendance() {
+        try {
+            const settings = {
+                workingHours: {
+                    start: document.getElementById('att-start').value,
+                    end: document.getElementById('att-end').value
+                },
+                absenceDeductionRate: parseFloat(document.getElementById('att-ded').value) / 100,
+                autoDeductAbsence: document.getElementById('att-auto').value === 'true',
+                lateDeductionRate: parseFloat(document.getElementById('att-late').value) / 100,
+                autoDeductLate: document.getElementById('att-late-auto').value === 'true',
+                lateGraceMinutes: parseInt(document.getElementById('att-grace').value)
+            };
+            const res = await fetch(`${CONFIG.API_BASE_URL}/company/settings`, {
+                method: 'PUT',
+                headers: auth.getAuthHeaders(),
+                body: JSON.stringify({ settings })
+            });
+            if (!res.ok) throw new Error('Failed');
+            ui.showToast('success', 'Saved', 'Attendance settings updated');
+        } catch (err) { ui.showToast('error', 'Error', err.message); }
+    }
 
     async loadDeviceStatus() {
-    try {
-        const res = await deviceApi.current();
-        const el = document.getElementById('device-status');
-        if (!el) return;
-        if (res.device) {
-            el.innerHTML = `
-                <div class="p-3 rounded" style="background:var(--success-light);">
-                    <p class="text-sm"><strong>Active:</strong> ${res.device.name}</p>
-                    <p class="text-xs text-muted">Device ID: ${res.device.deviceId}</p>
-                    <button class="btn btn-sm btn-danger mt-2" onclick="pageSettings.deactivateDevice('${res.device.id}')">Deactivate</button>
-                </div>`;
-        } else {
-            el.innerHTML = `<p class="text-muted">No device registered</p>`;
-        }
-    } catch (err) { console.error(err); }
-}
+        try {
+            const res = await deviceApi.current();
+            const el = document.getElementById('device-status');
+            if (!el) return;
+            if (res.device) {
+                el.innerHTML = `
+                    <div class="p-3 rounded" style="background:var(--success-light);">
+                        <p class="text-sm"><strong>Active:</strong> ${res.device.name}</p>
+                        <p class="text-xs text-muted">Device ID: ${res.device.deviceId}</p>
+                        <button class="btn btn-sm btn-danger mt-2" onclick="pageSettings.deactivateDevice('${res.device.id}')">Deactivate</button>
+                    </div>`;
+            } else {
+                el.innerHTML = `<p class="text-muted">No device registered</p>`;
+            }
+        } catch (err) { console.error(err); }
+    }
 
     async registerDevice() {
         const name = prompt('Device name:', 'Front Desk Phone');
@@ -209,28 +263,28 @@ class SettingsPage {
         catch (err) { ui.showToast('error', 'Error', err.message); }
     }
     async changePassword() {
-    const current = document.getElementById('cp-current').value;
-    const newP = document.getElementById('cp-new').value;
-    const confirm = document.getElementById('cp-confirm').value;
-    
-    if (newP !== confirm) {
-        ui.showToast('warning', 'Validation', 'Passwords do not match');
-        return;
-    }
-    if (newP.length < 8) {
-        ui.showToast('warning', 'Validation', 'Password must be 8+ characters');
-        return;
-    }
-    
-    try {
-        await authApi.changePassword(current, newP);
-        ui.showToast('success', 'Changed', 'Password updated');
-        document.getElementById('cp-current').value = '';
-        document.getElementById('cp-new').value = '';
-        document.getElementById('cp-confirm').value = '';
-    } catch (err) {
-        ui.showToast('error', 'Error', err.message);
-    }
+        const current = document.getElementById('cp-current').value;
+        const newP = document.getElementById('cp-new').value;
+        const confirm = document.getElementById('cp-confirm').value;
+        
+        if (newP !== confirm) {
+            ui.showToast('warning', 'Validation', 'Passwords do not match');
+            return;
+        }
+        if (newP.length < 8) {
+            ui.showToast('warning', 'Validation', 'Password must be 8+ characters');
+            return;
+        }
+        
+        try {
+            await authApi.changePassword(current, newP);
+            ui.showToast('success', 'Changed', 'Password updated');
+            document.getElementById('cp-current').value = '';
+            document.getElementById('cp-new').value = '';
+            document.getElementById('cp-confirm').value = '';
+        } catch (err) {
+            ui.showToast('error', 'Error', err.message);
+        }
     }
 
     showAddField() {
@@ -295,6 +349,36 @@ class SettingsPage {
                 showWarehouse: document.getElementById('rt-wh').checked
             });
             ui.showToast('success', 'Saved', 'Template updated');
+        } catch (err) { ui.showToast('error', 'Error', err.message); }
+    }
+    async uploadLogo(input) {
+    if (!input.files?.length) return;
+    const file = input.files[0];
+    const fd = new FormData();
+    fd.append('logo', file);
+    try {
+        const res = await fetch(`${CONFIG.API_BASE_URL}/logo/upload`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${auth.token}` },
+            body: fd
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        ui.showToast('success', 'Uploaded', 'Logo saved');
+        this.render(document.getElementById('page-content'));
+    } catch (err) { ui.showToast('error', 'Error', err.message); }
+}
+
+    async generateLogo() {
+        try {
+            const res = await fetch(`${CONFIG.API_BASE_URL}/logo/generate`, {
+                method: 'POST',
+                headers: auth.getAuthHeaders()
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            ui.showToast('success', 'Generated', 'Auto-logo created');
+            this.render(document.getElementById('page-content'));
         } catch (err) { ui.showToast('error', 'Error', err.message); }
     }
 }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Attendance Model
  * One record per employee per day.
  * Biometric verification via assigned device.
@@ -195,6 +195,7 @@ attendanceSchema.methods.recordClockOut = function ({ deviceId, deviceRef, finge
 // ============================================================
 attendanceSchema.methods.toPublicJSON = function () {
     return {
+        _id: this._id,
         id: this._id,
         employee: this.employee,
         date: this.date,

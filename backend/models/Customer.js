@@ -1,7 +1,7 @@
-/**
+﻿/**
  * Customer Model
  * Records customer info, contact, and order history.
- * PII protected — access restricted.
+ * PII protected â€” access restricted.
  */
 const mongoose = require('mongoose');
 
@@ -98,10 +98,11 @@ customerSchema.methods.addConversation = function (entry) {
 };
 
 // ============================================================
-// Serialization — PII protected
+// Serialization â€” PII protected
 // ============================================================
 customerSchema.methods.toPublicJSON = function (viewerRole = 'sales') {
     const base = {
+        _id: this._id,
         id: this._id,
         name: this.name,
         totalOrders: this.totalOrders,

@@ -4,10 +4,7 @@ const { body, validationResult } = require('express-validator');
 const { protect } = require('../../middleware/auth');
 const Communication = require('../../models/Communication');
 const User = require('../../models/User');
-const auditHelper = require('../../utils/auditHelper');
 const { v4: uuidv4 } = require('uuid');
-
-router.use(protect);
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -15,11 +12,13 @@ const validate = (req, res, next) => {
     next();
 };
 
+router.use(protect);
+
 router.get('/inbox', async (req, res, next) => {
     try {
-        const { status, page = 1, limit = 20 } = req.query;
+        const { page = 1, limit = 20 } = req.query;
         const skip = (parseInt(page) - 1) * parseInt(limit);
-        const query = { company: req.user.company, recipient: req.user._id, ...(status && { status }) };
+        const query = { company: req.user.company, recipient: req.user._id };
         const messages = await Communication.find(query)
             .populate('sender', 'firstName lastName role')
             .sort({ createdAt: -1 }).skip(skip).limit(parseInt(limit));
@@ -47,8 +46,7 @@ router.get('/recipients', async (req, res, next) => {
         const recipients = await User.find({
             company: req.user.company,
             _id: { $ne: req.user._id },
-            isActive: true,
-            accountClosed: false
+            isActive: true
         }).select('firstName lastName role activeRoles');
         res.json({ success: true, recipients });
     } catch (err) { next(err); }
@@ -56,14 +54,16 @@ router.get('/recipients', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
     try {
-        const message = await Communication.findOne({ _id: req.params.id, company: req.user.company })
+        const msg = await Communication.findOne({ _id: req.params.id, company: req.user.company })
             .populate('sender', 'firstName lastName role')
             .populate('recipient', 'firstName lastName role');
-        if (!message) return res.status(404).json({ success: false, error: 'Not found' });
-        if (message.recipient.toString() === req.user._id.toString() && message.status === 'unread') {
-            message.status = 'read'; message.readAt = new Date(); await message.save();
+        if (!msg) return res.status(404).json({ success: false, error: 'Not found' });
+        if (msg.recipient.toString() === req.user._id.toString() && msg.status === 'unread') {
+            msg.status = 'read';
+            msg.readAt = new Date();
+            await msg.save();
         }
-        res.json({ success: true, message });
+        res.json({ success: true, message: msg });
     } catch (err) { next(err); }
 });
 
@@ -74,17 +74,23 @@ router.post('/', [
     body('message').notEmpty()
 ], validate, async (req, res, next) => {
     try {
-        const { recipientId, type, subject, message, priority } = req.body;
-        const recipient = await User.findOne({ _id: recipientId, company: req.user.company });
+        const recipient = await User.findOne({ _id: req.body.recipientId, company: req.user.company });
         if (!recipient) return res.status(404).json({ success: false, error: 'Recipient not found' });
+        
         const comm = await Communication.create({
-            company: req.user.company, branch: req.user.branch,
+            company: req.user.company,
+            branch: req.user.branch,
             threadId: uuidv4(),
-            sender: req.user._id, senderName: `${req.user.firstName} ${req.user.lastName}`, senderRole: req.user.role,
-            recipient: recipientId, recipientName: `${recipient.firstName} ${recipient.lastName}`,
-            type, subject, message, priority: priority || 'normal'
+            sender: req.user._id,
+            senderName: `${req.user.firstName} ${req.user.lastName}`,
+            senderRole: req.user.role,
+            recipient: req.body.recipientId,
+            recipientName: `${recipient.firstName} ${recipient.lastName}`,
+            type: req.body.type,
+            subject: req.body.subject,
+            message: req.body.message,
+            priority: req.body.priority || 'normal'
         });
-        await auditHelper.log(req, { action: 'MESSAGE_SEND', entityType: 'Communication', entityId: comm._id, entityName: subject });
         res.status(201).json({ success: true, communication: comm });
     } catch (err) { next(err); }
 });
@@ -111,7 +117,11 @@ router.put('/:id/resolve', async (req, res, next) => {
         const comm = await Communication.findOne({ _id: req.params.id, company: req.user.company });
         if (!comm) return res.status(404).json({ success: false, error: 'Not found' });
         comm.status = 'resolved';
-        comm.resolution = { resolvedAt: new Date(), resolvedBy: req.user._id, resolution: req.body.resolution || 'Resolved' };
+        comm.resolution = {
+            resolvedAt: new Date(),
+            resolvedBy: req.user._id,
+            resolution: req.body.resolution || 'Resolved'
+        };
         await comm.save();
         res.json({ success: true, communication: comm });
     } catch (err) { next(err); }

@@ -1,4 +1,4 @@
-/**
+﻿/**
  * CustomerOrder Model
  * An order placed by a customer via WhatsApp or in-app.
  * Can be created automatically (system) or manually (sales person).
@@ -164,6 +164,7 @@ customerOrderSchema.methods.addConversation = function (entry) {
 // ============================================================
 customerOrderSchema.methods.toPublicJSON = function () {
     return {
+        _id: this._id,
         id: this._id,
         orderId: this.orderId,
         customer: this.customer,

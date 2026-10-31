@@ -1,4 +1,4 @@
-/**
+﻿/**
  * User Model (Employers & Employees)
  * Multi-role, branch-scoped, biometric-enabled.
  * The single most security-critical model in the system.
@@ -106,7 +106,7 @@ const userSchema = new mongoose.Schema({
             message: 'Invalid function in activeRoles array'
         },
         default: []
-        // Currently active roles — subset of roles
+        // Currently active roles â€” subset of roles
         // Role can be assigned (in roles) but paused (not in activeRoles)
     },
 
@@ -125,7 +125,7 @@ const userSchema = new mongoose.Schema({
         min: [0, 'Base salary cannot be negative']
     },
 
-    // ✅ ADD THIS:
+    // âœ… ADD THIS:
     isMainStock: {
         type: Boolean,
         default: false
@@ -185,11 +185,11 @@ const userSchema = new mongoose.Schema({
         default: null
     },
 
-    // ✅ ADD THESE:
+    // âœ… ADD THESE:
     emailVerified: {
         type: Boolean,
         default: true
-        // Default true for backward compat — new users get false
+        // Default true for backward compat â€” new users get false
     },
     verificationToken: { type: String, select: false },
     verificationTokenExpires: { type: Date, select: false },
@@ -237,7 +237,7 @@ const userSchema = new mongoose.Schema({
 // Unique: email per company
 userSchema.index({ company: 1, email: 1 }, { unique: true });
 
-// Unique: employee ID per company — only when employeeId is actually set
+// Unique: employee ID per company â€” only when employeeId is actually set
 userSchema.index(
     { company: 1, employeeId: 1 },
     {
@@ -428,6 +428,7 @@ userSchema.methods.hasFunction = function (fn) {
 // ============================================================
 userSchema.methods.toPublicJSON = function () {
     return {
+        _id: this._id,
         id: this._id,
         firstName: this.firstName,
         lastName: this.lastName,

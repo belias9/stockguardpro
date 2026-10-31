@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Inventory Model
  * Stock for one item in ONE specific warehouse.
  * Same item code can exist in multiple warehouses with different quantities.
@@ -96,7 +96,7 @@ const inventorySchema = new mongoose.Schema({
         required: [true, 'Branch is required'],
         index: true
         // Denormalized from warehouse for faster queries
-        // Warehouse.branch must match this — validated in pre-save
+        // Warehouse.branch must match this â€” validated in pre-save
     },
     warehouse: {
         type: mongoose.Schema.Types.ObjectId,
@@ -217,7 +217,7 @@ const inventorySchema = new mongoose.Schema({
         default: null,
         trim: true,
         uppercase: true
-        // Unique per company (partial index — sparse-like fix)
+        // Unique per company (partial index â€” sparse-like fix)
     },
 
     // ============ Inventory mode (blind count) ============
@@ -277,7 +277,7 @@ const inventorySchema = new mongoose.Schema({
 // Unique: item code per warehouse
 inventorySchema.index({ warehouse: 1, itemCode: 1 }, { unique: true });
 
-// Unique: SKU per company — only when SKU is set
+// Unique: SKU per company â€” only when SKU is set
 inventorySchema.index(
     { company: 1, sku: 1 },
     {
@@ -418,10 +418,11 @@ inventorySchema.methods.getPotentialProfit = function () {
 };
 
 // ============================================================
-// Method: safe public JSON — role-aware
+// Method: safe public JSON â€” role-aware
 // ============================================================
 inventorySchema.methods.toPublicJSON = function (viewerRole = 'sales') {
     const base = {
+        _id: this._id,
         id: this._id,
         itemCode: this.itemCode,
         name: this.name,

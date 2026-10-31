@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Salary Model
  * One record per employee per month.
  * Calculated from attendance + bonuses + deductions.
@@ -125,7 +125,7 @@ const salarySchema = new mongoose.Schema({
     warnings: {
         type: [String],
         default: []
-        // e.g., "3 days had no attendance record — treated as absent"
+        // e.g., "3 days had no attendance record â€” treated as absent"
     },
 
     // ============ Notes ============
@@ -191,7 +191,7 @@ salarySchema.pre('save', function (next) {
 // ============================================================
 salarySchema.methods.markPaid = function (user, { paymentMethod, transactionReference, bankAccount, bankName }) {
     if (this.payment.status === 'paid') throw new Error('Salary already paid');
-    if (this.payment.status === 'disputed') throw new Error('Salary under dispute — cannot pay');
+    if (this.payment.status === 'disputed') throw new Error('Salary under dispute â€” cannot pay');
 
     this.payment.status = 'paid';
     this.payment.paidAt = new Date();
@@ -228,6 +228,7 @@ salarySchema.methods.submitDispute = function (issue) {
 // ============================================================
 salarySchema.methods.toPublicJSON = function (viewerRole = 'employee') {
     const base = {
+        _id: this._id,
         id: this._id,
         period: this.period,
         month: this.month,

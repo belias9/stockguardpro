@@ -101,16 +101,25 @@ async function generateSalaries(req, data) {
                 totalDeductions += absenceDeduction;
             }
 
+                // Late deduction
             const totalLateMinutes = attendances.reduce((s, a) => s + (a.workingHours?.lateMinutes || 0), 0);
-            if (totalLateMinutes > 60) {
-                const lateHours = Math.floor(totalLateMinutes / 60);
-                const lateDeduction = Math.round(lateHours * hourlyRate);
-                deductions.push({
-                    type: 'late',
-                    description: `${totalLateMinutes} minutes late`,
-                    amount: lateDeduction
-                });
-                totalDeductions += lateDeduction;
+            const lateGrace = company.settings?.lateGraceMinutes || 15;
+            const effectiveLateMinutes = Math.max(0, totalLateMinutes - lateGrace);
+
+            if (effectiveLateMinutes > 0 && company.settings?.autoDeductLate !== false) {
+                const lateHours = effectiveLateMinutes / 60;
+                const lateRate = company.settings?.lateDeductionRate || 0.5;
+                const lateDeduction = Math.round(lateHours * dailyRate * lateRate);
+                
+                if (lateDeduction > 0) {
+                    deductions.push({
+                        type: 'late',
+                        description: `${effectiveLateMinutes} minutes late (after ${lateGrace}min grace)`,
+                        amount: lateDeduction,
+                        percentage: lateRate * 100
+                    });
+                    totalDeductions += lateDeduction;
+                }
             }
 
             // Warnings for missing days

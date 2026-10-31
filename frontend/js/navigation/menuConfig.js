@@ -7,8 +7,7 @@
             { page: 'ai', icon: 'fa-robot', label: 'AI Assistant' }
         ]},
         { label: 'Setup', items: [
-            { page: 'branches', icon: 'fa-code-branch', label: 'Branches' },
-            { page: 'warehouses', icon: 'fa-warehouse', label: 'Warehouses' }
+            { page: 'branch-detail', icon: 'fa-code-branch', label: 'Branches & Warehouses' },
         ]},
         { label: 'Stock', items: [
             { page: 'inventory', icon: 'fa-boxes', label: 'Inventory' },
@@ -23,7 +22,8 @@
         { label: 'Workforce', items: [
             { page: 'attendance', icon: 'fa-fingerprint', label: 'Attendance' },
             { page: 'salary', icon: 'fa-money-bill-wave', label: 'Salary' },
-            { page: 'users', icon: 'fa-users', label: 'Employees' }
+            { page: 'employees-by-branch', icon: 'fa-users', label: 'Employees (by Branch)' },
+            { page: 'users', icon: 'fa-user-shield', label: 'Users & Roles' },
         ]},
         { label: 'Communication', items: [
             { page: 'messages', icon: 'fa-envelope', label: 'Messages' }

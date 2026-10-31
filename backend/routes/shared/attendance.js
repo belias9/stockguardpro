@@ -29,6 +29,13 @@ router.post('/clock-out', [
     catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
 });
 
+router.post('/set-device', protect, authorize('employer'), async (req, res, next) => {
+    try {
+        const result = await attendanceService.setAttendanceDevice(req, req.body.employeeId);
+        res.json({ success: true, ...result });
+    } catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
+});
+
 // Protected — everything else
 router.get('/today', protect, authorize('employer'), async (req, res, next) => {
     try { res.json({ success: true, ...(await attendanceService.getToday(req)) }); }

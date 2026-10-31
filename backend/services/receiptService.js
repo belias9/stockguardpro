@@ -1,8 +1,10 @@
-/**
+﻿/**
  * Receipt Service
  * Create sales, below-price approval, cashier confirmation.
  */
 const Receipt = require('../models/Receipt');
+const Customization = require('../models/Customization');
+const Company = require('../models/Company');
 const Inventory = require('../models/Inventory');
 const Warehouse = require('../models/Warehouse');
 const PriceApproval = require('../models/PriceApproval');
@@ -80,7 +82,7 @@ async function createReceipt(req, data) {
 
         if (req.user.role !== 'employer' && inv.branch.toString() !== req.user.branch.toString()) {
             // Allow cross-branch sales (interbranch), but mark it
-            // No block — just track
+            // No block â€” just track
         }
 
         const qty = parseFloat(item.quantity);
@@ -129,10 +131,18 @@ async function createReceipt(req, data) {
     const isInterBranch = originBranches.size > 1 || 
         (originBranches.size === 1 && !originBranches.has(req.user.branch?.toString()));
 
-    // Create receipt
+        // Create receipt
+        const firstItem = processedItems[0];
+    const inv = await Inventory.findById(firstItem.inventoryItem).select('branch');
+    const branchToUse = req.user.branch || inv?.branch || null;
+
+    if (!branchToUse) {
+        throw { status: 400, message: 'Branch could not be determined from items' };
+    }
+
     const receipt = new Receipt({
         company: req.user.company,
-        branch: req.user.branch,
+        branch: branchToUse,
         items: processedItems,
         paymentMethod,
         paymentDetails: paymentDetails || {},
@@ -288,7 +298,7 @@ async function approveBelowPrice(req, approvalId) {
     pa.approve(req.user, req.body?.comments || '');
     await pa.save();
 
-    // If all below-price approvals for this receipt are done → finalize receipt
+    // If all below-price approvals for this receipt are done â†’ finalize receipt
     const receipt = await Receipt.findById(pa.receipt);
     if (receipt) {
         const stillPending = await PriceApproval.countDocuments({

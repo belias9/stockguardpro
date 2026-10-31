@@ -229,10 +229,10 @@ async function predictInventory(req, historicalData) {
 
     const prompt = `Predict inventory needs for next month.
 
-Historical data:
-${JSON.stringify(cleanData).slice(0, 8000)}
+    Historical data:
+        ${JSON.stringify(cleanData).slice(0, 8000)}
 
-Respond in JSON with: predictions (array of {itemName, currentStock, predictedNeed, recommendedOrder, urgency: "low"/"medium"/"high"}), trends (array of strings), cashFlowImpact (number, in local currency).`;
+    Respond in JSON with: predictions (array of {itemName, currentStock, predictedNeed, recommendedOrder, urgency: "low"/"medium"/"high"}), trends (array of strings), cashFlowImpact (number, in local currency).`;
 
     try {
         const response = await client.chat.completions.create({
@@ -253,6 +253,8 @@ Respond in JSON with: predictions (array of {itemName, currentStock, predictedNe
     }
 }
 
+
+
 // ============================================================
 // Report generation
 // ============================================================
@@ -262,20 +264,20 @@ async function generateReport(req, reportType, data, period) {
 
     const prompt = `Generate a professional ${reportType} business report for the period: ${period}.
 
-Data:
-${JSON.stringify(data).slice(0, 10000)}
+    Data:
+    ${JSON.stringify(data).slice(0, 10000)}
 
-Write a comprehensive report with:
-1. Executive Summary
-2. Key Metrics
-3. Trends
-4. Issues
-5. Recommendations
-6. Next Steps
+    Write a comprehensive report with:
+    1. Executive Summary
+    2. Key Metrics
+    3. Trends
+    4. Issues
+    5. Recommendations
+    6. Next Steps
 
-Format as plain text with clear sections.`;
+    Format as plain text with clear sections.`;
 
-    try {
+        try {
         const response = await client.chat.completions.create({
             model,
             messages: [

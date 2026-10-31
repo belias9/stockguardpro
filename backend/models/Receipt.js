@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Receipt Model
  * A sale transaction. May span multiple warehouses.
  * Triggers withdrawal if items come from different warehouse than store.
@@ -146,7 +146,7 @@ const receiptSchema = new mongoose.Schema({
     securityHash: {
         type: String,
         required: true
-        // SHA256 of critical fields — for tamper detection
+        // SHA256 of critical fields â€” for tamper detection
     },
 
     // ============ Metadata ============
@@ -208,7 +208,7 @@ receiptSchema.methods.confirmPayment = function (user, notes = '') {
         throw new Error('Payment already confirmed');
     }
     if (this.paymentStatus === 'disputed') {
-        throw new Error('Payment under dispute — cannot confirm');
+        throw new Error('Payment under dispute â€” cannot confirm');
     }
     this.paymentStatus = 'confirmed';
     this.cashierConfirmation.confirmedBy = user._id;
@@ -222,7 +222,7 @@ receiptSchema.methods.confirmPayment = function (user, notes = '') {
 // ============================================================
 receiptSchema.methods.disputePayment = function (user, reason) {
     if (this.paymentStatus === 'confirmed') {
-        throw new Error('Payment already confirmed — cannot dispute');
+        throw new Error('Payment already confirmed â€” cannot dispute');
     }
     this.paymentStatus = 'disputed';
     this.cashierConfirmation.disputedBy = user._id;
@@ -235,6 +235,7 @@ receiptSchema.methods.disputePayment = function (user, reason) {
 // ============================================================
 receiptSchema.methods.toPublicJSON = function (viewerRole = 'sales') {
     const base = {
+        _id: this._id,
         id: this._id,
         receiptId: this.receiptId,
         status: this.status,

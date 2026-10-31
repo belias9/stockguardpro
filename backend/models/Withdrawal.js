@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Withdrawal Model
  * Stock transfer request (store-to-warehouse, warehouse-to-warehouse, branch-to-branch).
  * Requires Manager approval only. Stock personnel confirm dispatch/receipt.
@@ -215,6 +215,7 @@ withdrawalSchema.methods.receiveStock = function (user) {
 // ============================================================
 withdrawalSchema.methods.toPublicJSON = function (viewerRole = 'sales') {
     const base = {
+        _id: this._id,
         id: this._id,
         withdrawalId: this.withdrawalId,
         transferType: this.transferType,

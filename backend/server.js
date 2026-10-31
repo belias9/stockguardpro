@@ -19,6 +19,8 @@ const { globalLimiter } = require('./middleware/rateLimiter');
 const { branchContext } = require('./middleware/branchContext');
 const requestLogger = require('./middleware/requestLogger');
 const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
+ 
+app.use('/uploads', express.static('uploads'));
 
 // Socket.IO
 const { initSocket } = require('./config/socket');
@@ -156,6 +158,7 @@ app.use('/api/branches', require('./routes/employer/branches'));
 app.use('/api/warehouses', require('./routes/employer/warehouses'));
 app.use('/api/users', require('./routes/employer/users'));
 app.use('/api/audit', require('./routes/employer/audit'));
+app.use('/api/logo', require('./routes/employer/logo'));
 
 // Employee
 app.use('/api/inventory', require('./routes/employee/stock/inventory'));

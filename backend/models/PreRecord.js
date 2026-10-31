@@ -1,6 +1,6 @@
-/**
+﻿/**
  * PreRecord Model
- * Shop buyer's purchase record — enters stock only after stock personnel confirms.
+ * Shop buyer's purchase record â€” enters stock only after stock personnel confirms.
  */
 const mongoose = require('mongoose');
 
@@ -140,6 +140,7 @@ preRecordSchema.methods.cancel = function () {
 // ============================================================
 preRecordSchema.methods.toPublicJSON = function (viewerRole = 'shop_buyer') {
     const base = {
+        _id: this._id,
         id: this._id,
         preRecordId: this.preRecordId,
         status: this.status,

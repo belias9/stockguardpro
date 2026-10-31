@@ -152,7 +152,7 @@ async function updateUser(req, id, data) {
     if (data.phone !== undefined) user.phone = data.phone;
     if (data.baseSalary !== undefined && user.role === 'employee') {
         user.baseSalary = parseFloat(data.baseSalary) || 0;
-    }
+        }
         // Main stock flag
     // Main stock flag
     if (data.isMainStock !== undefined && user.role === 'employee') {
@@ -181,7 +181,6 @@ async function updateUser(req, id, data) {
             throw { status: 400, message: 'Employees must have at least one role' };
         }
         user.roles = data.roles;
-        // Active roles ⊆ roles
         user.activeRoles = data.activeRoles !== undefined
             ? data.activeRoles.filter(r => data.roles.includes(r))
             : data.roles;

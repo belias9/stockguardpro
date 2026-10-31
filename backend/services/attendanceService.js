@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Attendance Service
  * Clock in/out with biometric verification.
  */
@@ -9,7 +9,7 @@ const Company = require('../models/Company');
 const auditHelper = require('../utils/auditHelper');
 
 // ============================================================
-// Clock in (public — requires device key)
+// Clock in (public â€” requires device key)
 // ============================================================
 async function clockIn(req, data) {
     const {
@@ -123,7 +123,7 @@ async function clockIn(req, data) {
 }
 
 // ============================================================
-// Clock out (public — requires device key)
+// Clock out (public â€” requires device key)
 // ============================================================
 async function clockOut(req, data) {
     const {
@@ -306,7 +306,7 @@ async function getEmployeeAttendance(req, employeeId, query) {
 }
 
 // ============================================================
-// Submit absence reason (employee — self)
+// Submit absence reason (employee â€” self)
 // ============================================================
 async function submitAbsenceReason(req, data) {
     const { date, reason, documentUrl } = data;
@@ -345,7 +345,7 @@ async function submitAbsenceReason(req, data) {
 }
 
 // ============================================================
-// Auto-mark absent (cron — runs at 23:59)
+// Auto-mark absent (cron â€” runs at 23:59)
 // ============================================================
 async function autoMarkAbsent() {
     const logger = require('../utils/logger');
@@ -396,8 +396,40 @@ async function autoMarkAbsent() {
         throw err;
     }
 }
+async function setAttendanceDevice(req, employeeId) {
+    const Device = require('../models/Device');
+    const User = require('../models/User');
+    const crypto = require('crypto');
 
+    if (req.user.role !== 'employer') throw { status: 403, message: 'Employer only' };
+
+    const employee = await User.findOne({ _id: employeeId, company: req.user.company });
+    if (!employee) throw { status: 404, message: 'Employee not found' };
+
+    // Deactivate existing
+    await Device.deleteMany({ company: req.user.company, branch: null });
+
+    // Create new device based on employee
+    const rawKey = Device.generateApiKey();
+    const device = await Device.create({
+        company: req.user.company,
+        branch: employee.branch,
+        name: `${employee.firstName} ${employee.lastName}'s Device`,
+        deviceId: 'EMP_' + employee._id.toString(),
+        type: 'phone',
+        apiKey: rawKey,
+        assignedTo: employee._id,
+        registeredBy: req.user._id
+    });
+
+    return { device: device.toPublicJSON(), apiKey: rawKey };
+}
 module.exports = {
-    clockIn, clockOut, getToday, getEmployeeAttendance,
-    submitAbsenceReason, autoMarkAbsent
+    clockIn,
+    clockOut,
+    getToday,
+    getEmployeeAttendance,
+    submitAbsenceReason,
+    autoMarkAbsent,
+    setAttendanceDevice
 };
