@@ -38,6 +38,7 @@
         const active = auth.user.activeRoles || [];
         const seesCost = role === 'employer' || active.includes('manager') || (active.includes('stock') && auth.user.isMainStock);
         const headers = [
+            { key: 'images', label: 'Photo', format: v => v?.[0] ? `<img src="${v[0]}" alt="Item" style="width:40px;height:40px;object-fit:cover;border-radius:4px">` : '-' },
             { key: 'itemCode', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'quantity', label: 'Qty', format: (v, r) => `${v} ${r.unit}` },

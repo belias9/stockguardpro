@@ -32,6 +32,13 @@ function startCronJobs() {
         }
     });
 
+    cron.schedule('* * * * *', async () => {
+        try {
+            const result = await require('../services/endOfDayService').generateDueReports();
+            if (result.generated) logger.info('[Cron] End-of-day reports generated', result);
+        } catch (err) { logger.error('[Cron] End-of-day report generation failed:', err.message); }
+    });
+
     logger.info('[Cron] Jobs started');
 }
 

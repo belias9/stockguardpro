@@ -3,8 +3,15 @@ const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const { protect, authorizeFunction } = require('../../../middleware/auth');
 const preRecordService = require('../../../services/preRecordService');
+const Warehouse = require('../../../models/Warehouse');
 
 router.use(protect);
+router.get('/options', authorizeFunction('shop_buyer', 'manager'), async (req, res, next) => {
+    try {
+        const warehouses = await Warehouse.find({ company: req.user.company, branch: req.user.branch, isActive: true }).select('_id name code branch').sort({ name: 1 });
+        res.json({ success: true, warehouses });
+    } catch (err) { next(err); }
+});
 const validate = (req, res, next) => {
     const errors = validationResult(req);
     if (!errors.isEmpty()) return res.status(400).json({ success: false, error: errors.array()[0].msg });

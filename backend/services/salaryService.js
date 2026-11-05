@@ -5,7 +5,7 @@
 const Salary = require('../models/Salary');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
-const Company = require('../models/Company');
+const Company = require('../models/company');
 const auditHelper = require('../utils/auditHelper');
 
 // ============================================================
@@ -41,7 +41,7 @@ async function generateSalaries(req, data) {
 
     if (req.user.role === 'employer') {
         if (branchId) employeeFilter.branch = branchId;
-    } else if (req.user.activeRoles?.includes('manager')) {
+    } else if (req.user.activeRoles?.includes('manager') || req.user.activeRoles?.includes('accounting') || req.user.delegatedPermissions?.some(p => p.enabled && p.key === 'payroll.manage')) {
         employeeFilter.branch = req.user.branch;
     } else {
         throw { status: 403, message: 'Only employer or manager can generate salaries' };
@@ -185,7 +185,7 @@ async function listSalaries(req) {
     if (req.user.role === 'employer') {
         if (branchId) query.branch = branchId;
         else if (req.branch) query.branch = req.branch;
-    } else if (req.user.activeRoles?.includes('manager')) {
+    } else if (req.user.activeRoles?.includes('manager') || req.user.activeRoles?.includes('accounting') || req.user.delegatedPermissions?.some(p => p.enabled && p.key === 'payroll.manage')) {
         query.branch = req.user.branch;
     } else {
         // Employee sees own
@@ -225,10 +225,11 @@ async function paySalary(req, id, data) {
 
     const salary = await Salary.findOne({ _id: id, company: req.user.company });
     if (!salary) throw { status: 404, message: 'Salary record not found' };
+    if (salary.bonusApproval?.status === 'pending') throw { status: 400, message: 'A bonus is awaiting employer approval; salary cannot be paid yet' };
 
     // Scope
     if (req.user.role !== 'employer') {
-        if (!req.user.activeRoles?.includes('manager') && !req.user.activeRoles?.includes('accounting')) {
+        if (!req.user.activeRoles?.includes('manager') && !req.user.activeRoles?.includes('accounting') && !req.user.delegatedPermissions?.some(p => p.enabled && p.key === 'payroll.manage')) {
             throw { status: 403, message: 'Only employer, manager, or accounting can pay' };
         }
         if (salary.branch.toString() !== req.user.branch.toString()) {
@@ -336,6 +337,19 @@ async function approveBonus(req, id, approved) {
         entityName: `Bonus ${salary.period}`
     });
 
+    return salary.toPublicJSON('employer');
+}
+
+async function addDeduction(req, id, data) {
+    if (req.user.role !== 'employer') throw { status: 403, message: 'Only employer can add a manual salary deduction' };
+    const amount = Number(data.amount);
+    if (!Number.isFinite(amount) || amount <= 0 || !Salary.DEDUCTION_TYPES.includes(data.type)) throw { status: 400, message: 'A valid deduction type and positive amount are required' };
+    const salary = await Salary.findOne({ _id: id, company: req.user.company });
+    if (!salary) throw { status: 404, message: 'Salary not found' };
+    if (salary.payment.status === 'paid') throw { status: 400, message: 'Cannot modify a paid salary' };
+    salary.deductions.push({ type: data.type, amount, description: String(data.description || '').slice(0, 250), date: new Date(), reference: 'MANUAL' });
+    await salary.save();
+    await auditHelper.log(req, { action: 'SALARY_DEDUCTION_ADD', entityType: 'Salary', entityId: salary._id, entityName: `Deduction ${salary.period}`, changes: { after: { type: data.type, amount, description: data.description } } });
     return salary.toPublicJSON('employer');
 }
 
@@ -509,5 +523,5 @@ module.exports = {
     generateSalaries, listSalaries, paySalary,
     addBonus, approveBonus,
     requestAdvance, approveAdvance,
-    submitDispute, resolveDispute
+    submitDispute, resolveDispute, addDeduction
 };

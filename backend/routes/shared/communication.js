@@ -58,6 +58,9 @@ router.get('/:id', async (req, res, next) => {
             .populate('sender', 'firstName lastName role')
             .populate('recipient', 'firstName lastName role');
         if (!msg) return res.status(404).json({ success: false, error: 'Not found' });
+        if (req.user.role !== 'employer' && msg.sender._id.toString() !== req.user._id.toString() && msg.recipient._id.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, error: 'You cannot access this message' });
+        }
         if (msg.recipient.toString() === req.user._id.toString() && msg.status === 'unread') {
             msg.status = 'read';
             msg.readAt = new Date();
@@ -99,6 +102,9 @@ router.post('/:id/respond', [body('message').notEmpty()], validate, async (req, 
     try {
         const comm = await Communication.findOne({ _id: req.params.id, company: req.user.company });
         if (!comm) return res.status(404).json({ success: false, error: 'Not found' });
+        if (req.user.role !== 'employer' && comm.sender.toString() !== req.user._id.toString() && comm.recipient.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, error: 'You cannot reply to this message' });
+        }
         comm.responses.push({
             responder: req.user._id,
             responderName: `${req.user.firstName} ${req.user.lastName}`,
@@ -116,6 +122,9 @@ router.put('/:id/resolve', async (req, res, next) => {
     try {
         const comm = await Communication.findOne({ _id: req.params.id, company: req.user.company });
         if (!comm) return res.status(404).json({ success: false, error: 'Not found' });
+        if (req.user.role !== 'employer' && comm.recipient.toString() !== req.user._id.toString()) {
+            return res.status(403).json({ success: false, error: 'Only the recipient or employer can resolve this message' });
+        }
         comm.status = 'resolved';
         comm.resolution = {
             resolvedAt: new Date(),

@@ -264,4 +264,5 @@ withdrawalSchema.set('toObject', { virtuals: true });
 withdrawalSchema.statics.WITHDRAWAL_STATUS = WITHDRAWAL_STATUS;
 withdrawalSchema.statics.TRANSFER_TYPES = TRANSFER_TYPES;
 
+withdrawalSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('Withdrawal', withdrawalSchema);

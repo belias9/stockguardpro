@@ -29,11 +29,18 @@ const syncManager = {
         if (!this.status.online) {
             badge.className = 'sync-badge offline';
             badge.innerHTML = '<i class="fas fa-wifi"></i> Offline';
+        } else if ((this.status.stats?.conflicts || 0) + (this.status.stats?.failed || 0) > 0) {
+            const issues = (this.status.stats?.conflicts || 0) + (this.status.stats?.failed || 0);
+            badge.className = 'sync-badge error';
+            badge.title = `${this.status.stats?.conflicts || 0} conflict(s), ${this.status.stats?.failed || 0} failed item(s) need administrator review`;
+            badge.innerHTML = `<i class="fas fa-triangle-exclamation"></i> ${issues} sync issue${issues === 1 ? '' : 's'}`;
         } else if (this.status.stats?.pending > 0) {
             badge.className = 'sync-badge pending';
+            badge.removeAttribute('title');
             badge.innerHTML = `<i class="fas fa-sync"></i> ${this.status.stats.pending} pending`;
         } else {
             badge.className = 'sync-badge online';
+            badge.removeAttribute('title');
             badge.innerHTML = '<i class="fas fa-check-circle"></i> Synced';
         }
     },

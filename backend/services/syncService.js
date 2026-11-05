@@ -6,6 +6,7 @@
 const SyncQueue = require('../models/SyncQueue');
 const crypto = require('crypto');
 const logger = require('../utils/logger');
+let flushInProgress = false;
 
 // ============================================================
 // Queue a write for sync (called by every service on local mode)
@@ -36,6 +37,7 @@ async function queueWrite({ company, branch, action, entityType, entityId, paylo
 // Sign payload with HMAC (replay protection)
 // ============================================================
 function signPayload(payload, secret) {
+    if (!secret || String(secret).length < 32) throw new Error('SYNC_SECRET must contain at least 32 characters');
     return crypto
         .createHmac('sha256', secret)
         .update(JSON.stringify(payload))
@@ -66,6 +68,7 @@ async function isOnline() {
 async function flushQueue() {
     if (process.env.APP_MODE !== 'local') return { skipped: true };
     if (!process.env.CLOUD_API_URL) return { skipped: true };
+    if (flushInProgress) return { skipped: true, reason: 'flush_in_progress' };
 
     const online = await isOnline();
     if (!online) {
@@ -73,6 +76,8 @@ async function flushQueue() {
         return { skipped: true, reason: 'offline' };
     }
 
+    flushInProgress = true;
+    try {
     const pending = await SyncQueue.find({ status: 'pending', attempts: { $lt: 5 } })
         .sort({ createdAt: 1 })
         .limit(50);
@@ -80,7 +85,8 @@ async function flushQueue() {
     if (pending.length === 0) return { flushed: 0 };
 
     const results = { success: 0, failed: 0, conflicts: 0 };
-    const syncSecret = process.env.SYNC_SECRET || process.env.JWT_SECRET;
+    const syncSecret = process.env.SYNC_SECRET;
+    if (!syncSecret || syncSecret.length < 32) return { skipped: true, reason: 'SYNC_SECRET is not configured securely' };
 
     for (const entry of pending) {
         entry.status = 'syncing';
@@ -121,9 +127,9 @@ async function flushQueue() {
                 await entry.save();
                 results.success++;
             } else if (res.status === 409) {
-                // Conflict
+                const conflict = await res.json().catch(() => ({}));
                 entry.status = 'conflict';
-                entry.error = 'Conflict with cloud data';
+                entry.error = String(conflict.error || 'Conflict with cloud data').slice(0, 1000);
                 await entry.save();
                 results.conflicts++;
             } else {
@@ -139,6 +145,9 @@ async function flushQueue() {
 
     logger.info('[Sync] Flush complete', results);
     return results;
+    } finally {
+        flushInProgress = false;
+    }
 }
 
 // ============================================================
@@ -172,6 +181,8 @@ function startSyncWorker() {
     if (!process.env.CLOUD_API_URL) return;
 
     logger.info('[Sync] Worker started (every 30s)');
+
+    SyncQueue.updateMany({ status: 'syncing', lastAttemptAt: { $lt: new Date(Date.now() - 5 * 60 * 1000) } }, { $set: { status: 'pending', error: 'Recovered a stale sync attempt after server restart' } }).catch(err => logger.error('[Sync] Could not recover stale queue items:', err.message));
 
     setInterval(async () => {
         try {

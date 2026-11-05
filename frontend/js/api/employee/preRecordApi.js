@@ -1,4 +1,5 @@
-﻿const preRecordApi = {
+const preRecordApi = {
+    options: () => api.get('/pre-records/options'),
     list: (params) => api.get(`/pre-records?${qs(params)}`),
     get: (id) => api.get(`/pre-records/${id}`),
     create: (data) => api.post('/pre-records', data),

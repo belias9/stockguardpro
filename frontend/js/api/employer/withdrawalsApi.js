@@ -1,4 +1,5 @@
 const withdrawalsApi = {
+    options: () => api.get('/withdrawals/options'),
     list: (params) => api.get(`/withdrawals?${qs(params)}`),
     get: (id) => api.get(`/withdrawals/${id}`),
     create: (data) => api.post('/withdrawals', data),

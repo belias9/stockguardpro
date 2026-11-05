@@ -28,7 +28,7 @@
         } catch (err) { document.getElementById('sb-table').innerHTML = ui.errorState(err.message); }
     }
     async showCreate() {
-        const whRes = await warehousesApi.list({});
+        const whRes = auth.user.role === 'employer' ? await warehousesApi.list({}) : await preRecordApi.options();
         const whs = whRes.warehouses || [];
         const content = `
             <form id="sb-form">
@@ -40,10 +40,11 @@
                         <div class="form-group"><label>Name</label><input type="text" class="p-name"></div>
                         <div class="form-group"><label>Qty</label><input type="number" class="p-qty" min="0"></div>
                         <div class="form-group"><label>Cost</label><input type="number" class="p-cost" step="0.01"></div>
+                        <div class="form-group"><label>Item photo</label><input type="file" class="p-image" accept="image/*" capture="environment"></div>
                     </div>
                 </div>
                 <button type="button" class="btn btn-secondary btn-sm" onclick="pageShopBuyer.addRow()">+ Add Item</button>
-                <div class="form-group mt-3"><label>Receipt Image URL *</label><input type="url" id="sb-img" required></div>
+                <div class="form-group mt-3"><label>Photograph receipt *</label><input type="file" id="sb-img" accept="image/*" capture="environment" required><small>JPEG, PNG, or WebP; maximum 800 KB.</small></div>
             </form>`;
         const footer = `<button class="btn btn-secondary" onclick="ui.closeModal()">Cancel</button><button class="btn btn-primary" onclick="pageShopBuyer.create()">Save</button>`;
         ui.showModal('New Purchase', content, footer);
@@ -52,21 +53,26 @@
         const c = document.getElementById('sb-items');
         const row = document.createElement('div');
         row.className = 'sb-item grid-4 gap-2 mb-2';
-        row.innerHTML = `<div class="form-group"><label>Code</label><input type="text" class="p-code"></div><div class="form-group"><label>Name</label><input type="text" class="p-name"></div><div class="form-group"><label>Qty</label><input type="number" class="p-qty" min="0"></div><div class="form-group"><label>Cost</label><input type="number" class="p-cost" step="0.01"></div>`;
+        row.innerHTML = `<div class="form-group"><label>Code</label><input type="text" class="p-code"></div><div class="form-group"><label>Name</label><input type="text" class="p-name"></div><div class="form-group"><label>Qty</label><input type="number" class="p-qty" min="0"></div><div class="form-group"><label>Cost</label><input type="number" class="p-cost" step="0.01"></div><div class="form-group"><label>Item photo</label><input type="file" class="p-image" accept="image/*" capture="environment"></div>`;
         c.appendChild(row);
     }
     async create() {
         const items = [];
-        document.querySelectorAll('.sb-item').forEach(row => {
+        for (const row of document.querySelectorAll('.sb-item')) {
             const code = row.querySelector('.p-code').value;
             const name = row.querySelector('.p-name').value;
             const qty = parseFloat(row.querySelector('.p-qty').value) || 0;
             const cost = parseFloat(row.querySelector('.p-cost').value) || 0;
-            if (code && name && qty > 0) items.push({ itemCode: code.toUpperCase(), itemName: name, category: 'other', unit: 'pieces', quantity: qty, unitCost: cost });
-        });
+            if (code && name && qty > 0) {
+                try { items.push({ itemCode: code.toUpperCase(), itemName: name, category: 'other', unit: 'pieces', quantity: qty, unitCost: cost, imageUrl: await utils.readImageFile(row.querySelector('.p-image')?.files?.[0]) }); }
+                catch(err) { ui.showToast('warning','Invalid item photo',err.message); return; }
+            }
+        }
         if (!items.length) { ui.showToast('warning', 'Validation', 'Add at least one item'); return; }
         try {
-            await preRecordApi.create({ warehouseId: document.getElementById('sb-wh').value, items, receiptImageUrl: document.getElementById('sb-img').value, supplier: { name: document.getElementById('sb-supp').value } });
+            const receiptImageUrl = await utils.readImageFile('sb-img');
+            if (!receiptImageUrl) { ui.showToast('warning', 'Receipt required', 'Take or choose a receipt photo'); return; }
+            await preRecordApi.create({ warehouseId: document.getElementById('sb-wh').value, items, receiptImageUrl, supplier: { name: document.getElementById('sb-supp').value } });
             ui.closeModal(); ui.showToast('success', 'Created', 'Purchase recorded'); this.load();
         } catch (err) { ui.showToast('error', 'Error', err.message); }
     }

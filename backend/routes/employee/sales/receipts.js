@@ -5,11 +5,13 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { protect, authorizeFunction } = require('../../../middleware/auth');
+const { protect, authorizeFunction, authorizeTask } = require('../../../middleware/auth');
 const receiptService = require('../../../services/receiptService');
 const Receipt = require('../../../models/Receipt');
 const Customization = require('../../../models/Customization');
-const Company = require('../../../models/Company');
+const Company = require('../../../models/company');
+
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 router.use(protect);
 
 const validate = (req, res, next) => {
@@ -21,13 +23,13 @@ const validate = (req, res, next) => {
 };
 
 // GET — Sales, Manager, Employer
-router.get('/', authorizeFunction('sales', 'manager', 'cashier'), async (req, res, next) => {
+router.get('/', authorizeTask('receipts.create', 'sales', 'manager', 'cashier'), async (req, res, next) => {
     try { res.json({ success: true, ...(await receiptService.listReceipts(req)) }); }
     catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
 });
 
 // POST — Sales, Manager, Employer
-router.post('/', authorizeFunction('sales', 'manager'), [
+router.post('/', authorizeTask('receipts.create', 'sales', 'manager'), [
     body('items').isArray({ min: 1 }).withMessage('At least one item'),
     body('paymentMethod').isIn(['cash', 'card', 'bank_transfer', 'mobile_money', 'credit', 'mixed']),
     body('storeLocation').notEmpty().withMessage('Store location required')
@@ -68,6 +70,7 @@ router.post('/:id/send-whatsapp', protect, async (req, res, next) => {
     try {
         const receipt = await Receipt.findOne({ _id: req.params.id, company: req.user.company });
         if (!receipt) return res.status(404).json({ success: false, error: 'Receipt not found' });
+        if (req.user.role !== 'employer' && receipt.branch.toString() !== req.user.branch.toString()) return res.status(403).json({ success: false, error: 'Not authorized for this branch' });
         if (!receipt.customer?.phone) return res.json({ success: false, message: 'No customer phone on receipt' });
         
         const whatsappService = require('../../../services/whatsappService');
@@ -87,17 +90,20 @@ router.get('/:id/print', protect, async (req, res, next) => {
     try {
         const Receipt = require('../../../models/Receipt');
         const Customization = require('../../../models/Customization');
-        const Company = require('../../../models/Company');
+        const Company = require('../../../models/company');
         
         const receipt = await Receipt.findOne({ _id: req.params.id, company: req.user.company })
             .populate('items.inventoryItem');
         if (!receipt) return res.status(404).send('Not found');
+        if (req.user.role !== 'employer' && receipt.branch.toString() !== req.user.branch.toString()) return res.status(403).send('Not authorized');
         
         const custom = await Customization.getForCompany(req.user.company);
         const tpl = custom.receiptTemplate || {};
         const company = await Company.findById(req.user.company);
+        const logo = tpl.logoUrl || company.logo || '';
+        const safeLogo = /^\/uploads\/logos\/[\w.-]+$/.test(logo) || /^https:\/\//i.test(logo) ? escapeHtml(logo) : '';
         
-        const html = `<!DOCTYPE html><html><head><title>${receipt.receiptId}</title>
+        const html = `<!DOCTYPE html><html><head><title>${escapeHtml(receipt.receiptId)}</title>
         <style>
             body{font-family:Arial,sans-serif;max-width:480px;margin:20px auto;padding:20px;font-size:12px;color:#222}
             .header{text-align:center;border-bottom:2px solid #000;padding-bottom:12px;margin-bottom:12px}
@@ -118,19 +124,19 @@ router.get('/:id/print', protect, async (req, res, next) => {
             .footer{text-align:center;margin-top:20px;font-size:11px;color:#555}
             @media print{.no-print{display:none}}
         </style></head><body>
-        ${tpl.headerText ? `<p style="text-align:center;margin-bottom:8px">${tpl.headerText}</p>` : ''}
+        ${tpl.headerText ? `<p style="text-align:center;margin-bottom:8px">${escapeHtml(tpl.headerText)}</p>` : ''}
         <div class="header">
-            ${tpl.logoUrl ? `<img src="${tpl.logoUrl}" class="logo" alt="Logo"/>` : ''}
-            <div class="company-name">${company.name}</div>
-            <div class="company-info">${company.address?.street || ''} ${company.address?.city || ''}</div>
-            <div class="company-info">${company.phone || ''} | ${company.email || ''}</div>
+            ${safeLogo ? `<img src="${safeLogo}" class="logo" alt="Logo"/>` : ''}
+            <div class="company-name">${escapeHtml(company.name)}</div>
+            <div class="company-info">${escapeHtml(company.address?.street)} ${escapeHtml(company.address?.city)}</div>
+            <div class="company-info">${escapeHtml(company.phone)} | ${escapeHtml(company.email)}</div>
         </div>
         
         <div class="meta">
-            <div class="meta-row"><span><strong>Receipt:</strong> ${receipt.receiptId}</span><span><strong>Date:</strong> ${new Date(receipt.createdAt).toLocaleDateString()}</span></div>
-            <div class="meta-row"><span><strong>Customer:</strong> ${receipt.customer?.name || 'Walk-in'}</span><span><strong>Time:</strong> ${new Date(receipt.createdAt).toLocaleTimeString()}</span></div>
-            <div class="meta-row"><span><strong>Phone:</strong> ${receipt.customer?.phone || '-'}</span><span><strong>Store:</strong> ${receipt.storeLocation}</span></div>
-            <div class="meta-row"><span><strong>Sold By:</strong> ${receipt.soldByName}</span><span><strong>Payment:</strong> ${(receipt.paymentMethod || '').toUpperCase()}</span></div>
+            <div class="meta-row"><span><strong>Receipt:</strong> ${escapeHtml(receipt.receiptId)}</span><span><strong>Date:</strong> ${new Date(receipt.createdAt).toLocaleDateString()}</span></div>
+            <div class="meta-row"><span><strong>Customer:</strong> ${escapeHtml(receipt.customer?.name || 'Walk-in')}</span><span><strong>Time:</strong> ${new Date(receipt.createdAt).toLocaleTimeString()}</span></div>
+            <div class="meta-row"><span><strong>Phone:</strong> ${escapeHtml(receipt.customer?.phone || '-')}</span><span><strong>Store:</strong> ${escapeHtml(receipt.storeLocation)}</span></div>
+            <div class="meta-row"><span><strong>Sold By:</strong> ${escapeHtml(receipt.soldByName)}</span><span><strong>Payment:</strong> ${escapeHtml((receipt.paymentMethod || '').toUpperCase())}</span></div>
         </div>
         
         <table>
@@ -138,8 +144,8 @@ router.get('/:id/print', protect, async (req, res, next) => {
             <tbody>
                 ${receipt.items.map(item => `
                     <tr>
-                        <td>${item.itemName}<br><small style="color:#888">${item.itemCode}</small></td>
-                        <td style="text-align:center">${item.quantity} ${item.unit || ''}</td>
+                        <td>${escapeHtml(item.itemName)}<br><small style="color:#888">${escapeHtml(item.itemCode)}</small></td>
+                        <td style="text-align:center">${escapeHtml(item.quantity)} ${escapeHtml(item.unit || '')}</td>
                         <td style="text-align:right">${(item.unitPrice || 0).toLocaleString()}</td>
                         <td style="text-align:right">${(item.totalPrice || 0).toLocaleString()}</td>
                     </tr>
@@ -164,7 +170,7 @@ router.get('/:id/print', protect, async (req, res, next) => {
         </div>
         
         <div class="footer">
-            ${tpl.footerText || 'Thank you for your business!'}
+            ${escapeHtml(tpl.footerText || 'Thank you for your business!')}
         </div>
         
         <button class="no-print" onclick="window.print()" style="margin-top:20px;padding:10px 20px;width:100%;cursor:pointer;background:#2563eb;color:white;border:none;border-radius:4px">Print Receipt</button>

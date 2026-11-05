@@ -2,7 +2,7 @@
     constructor() { this.salaries = []; }
 
     async render(container) {
-        if (auth.user?.role === 'employer' || auth.user?.activeRoles?.includes('accounting') || auth.user?.activeRoles?.includes('manager')) {
+        if (auth.user?.role === 'employer' || auth.user?.activeRoles?.includes('accounting') || auth.user?.activeRoles?.includes('manager') || auth.user?.delegatedPermissions?.some(p => p.enabled && p.key === 'payroll.manage')) {
             return this.renderManager(container);
         }
         return this.renderEmployee(container);
@@ -170,8 +170,29 @@
                     <span class="font-bold text-lg">NET SALARY:</span>
                     <span class="font-bold text-lg text-primary">${ui.formatCurrency(s.netSalary || 0)}</span></div>
             </div>
+            ${auth.user.role === 'employer' || auth.user.activeRoles?.includes('manager') ? `<div class="flex gap-2 mt-3"><button class="btn btn-primary" onclick="pageSalary.showBonusModal('${s._id||s.id}')">Add Bonus</button>${auth.user.role==='employer'?`<button class="btn btn-warning" onclick="pageSalary.showDeductionModal('${s._id||s.id}')">Add Deduction</button>`:''}</div>`:''}
+            ${auth.user.role==='employer' && s.bonusApproval?.status==='pending'?`<div class="flex gap-2 mt-2"><button class="btn btn-success" onclick="pageSalary.decideBonus('${s._id||s.id}',true)">Approve Bonus (${ui.formatCurrency(earnings.bonus||0)})</button><button class="btn btn-danger" onclick="pageSalary.decideBonus('${s._id||s.id}',false)">Reject Bonus</button></div>`:''}
         `;
         ui.showModal(`Salary — ${s.period}`, content);
+    }
+
+    showBonusModal(id) {
+        ui.showModal('Add Bonus', `<div class="form-group"><label>Amount</label><input type="number" id="bonus-amount" min="0.01" step="0.01"></div><div class="form-group"><label>Reason</label><textarea id="bonus-reason" required></textarea></div>`, `<button class="btn btn-secondary" onclick="ui.closeModal()">Cancel</button><button class="btn btn-primary" onclick="pageSalary.addBonus('${id}')">Submit</button>`);
+    }
+    async addBonus(id) {
+        try { await salaryApi.addBonus(id,{amount:Number(document.getElementById('bonus-amount').value),reason:document.getElementById('bonus-reason').value});ui.closeModal();ui.showToast('success','Saved',auth.user.role==='employer'?'Bonus added':'Bonus sent to employer for approval');await this.loadSalaries(); }
+        catch(err){ui.showToast('error','Could not add bonus',err.message);}
+    }
+    async decideBonus(id,approved) {
+        try { await salaryApi.approveBonus(id,{approved});ui.showToast('success',approved?'Approved':'Rejected','Bonus decision saved');ui.closeModal();await this.loadSalaries(); }
+        catch(err){ui.showToast('error','Decision failed',err.message);}
+    }
+    showDeductionModal(id) {
+        ui.showModal('Add Salary Deduction',`<div class="form-group"><label>Type</label><select id="deduction-type"><option value="absence">Absence</option><option value="late">Late</option><option value="advance">Advance</option><option value="loan">Loan</option><option value="tax">Tax</option><option value="pension">Pension</option><option value="insurance">Insurance</option><option value="other">Other</option></select></div><div class="form-group"><label>Amount</label><input id="deduction-amount" type="number" min="0.01" step="0.01"></div><div class="form-group"><label>Reason</label><textarea id="deduction-description" required></textarea></div>`,`<button class="btn btn-secondary" onclick="ui.closeModal()">Cancel</button><button class="btn btn-warning" onclick="pageSalary.addDeduction('${id}')">Save Deduction</button>`);
+    }
+    async addDeduction(id) {
+        try { await salaryApi.addDeduction(id,{type:document.getElementById('deduction-type').value,amount:Number(document.getElementById('deduction-amount').value),description:document.getElementById('deduction-description').value});ui.closeModal();ui.showToast('success','Saved','Salary recalculated');await this.loadSalaries(); }
+        catch(err){ui.showToast('error','Could not save deduction',err.message);}
     }
 
     showPayModal(index) {

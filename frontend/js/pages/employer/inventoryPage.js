@@ -50,6 +50,7 @@ class InventoryPage {
         const c = document.getElementById('inv-table');
         if (!this.items.length) { c.innerHTML = ui.emptyState('No items', 'fa-box-open'); return; }
         const headers = [
+            { key: 'images', label: 'Photo', format: v => v?.[0] ? `<img src="${v[0]}" alt="Item" style="width:40px;height:40px;object-fit:cover;border-radius:4px">` : '-' },
             { key: 'itemCode', label: 'Code' },
             { key: 'name', label: 'Name' },
             { key: 'category', label: 'Category' },
@@ -87,6 +88,7 @@ class InventoryPage {
                     <div class="form-group"><label>Unit Cost *</label><input type="number" id="i-cost" required min="0" step="0.01"></div>
                     <div class="form-group"><label>Selling Price</label><input type="number" id="i-price" min="0" step="0.01"></div>
                 </div>
+                <div class="form-group"><label>Take or choose item photo</label><input type="file" id="i-image" accept="image/*" capture="environment"><small>JPEG, PNG, or WebP; maximum 800 KB.</small></div>
             </form>
         `;
         const footer = `
@@ -118,6 +120,9 @@ class InventoryPage {
     }
 
     async save() {
+        let images = [];
+        try { const image = await utils.readImageFile('i-image'); if (image) images = [image]; }
+        catch (err) { ui.showToast('warning', 'Invalid image', err.message); return; }
         const data = {
             warehouseId: document.getElementById('i-wh').value,
             itemCode: document.getElementById('i-code').value.toUpperCase(),
@@ -126,7 +131,8 @@ class InventoryPage {
             unit: document.getElementById('i-unit').value.toLowerCase(),
             quantity: parseFloat(document.getElementById('i-qty').value) || 0,
             unitCost: parseFloat(document.getElementById('i-cost').value) || 0,
-            sellingPrice: parseFloat(document.getElementById('i-price').value) || 0
+            sellingPrice: parseFloat(document.getElementById('i-price').value) || 0,
+            images
         };
         try {
             await inventoryApi.create(data);

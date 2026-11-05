@@ -45,6 +45,42 @@ const protect = async (req, res, next) => {
         }
 
         req.user = user;
+        if (user.role === 'employee') {
+            const Policy = require('../models/CompanyPolicy');
+            const requiredPolicies = await Policy.find({ company: user.company, active: true, requiresAcknowledgment: true }).select('version acknowledgments.employee acknowledgments.version');
+            const pendingAcknowledgment = requiredPolicies.some(p => !p.acknowledgments.some(a => String(a.employee) === String(user._id) && a.version === p.version));
+            const inPoliciesRoute = (req.baseUrl || '').startsWith('/api/policies');
+            if (pendingAcknowledgment && !inPoliciesRoute) return res.status(428).json({ success: false, error: 'Read and acknowledge current company policies before using the system', requiresPolicyAcknowledgment: true });
+            req.user.mustAcknowledgePolicies = pendingAcknowledgment;
+        }
+        // The oldest registered employer is treated as company owner for legacy
+        // tenants. Other employers receive only explicitly delegated scopes.
+        if (user.role === 'employer') {
+            const Company = require('../models/company');
+            const company = await Company.findById(user.company).select('primaryEmployer');
+            if (company) {
+                if (!company.primaryEmployer) {
+                    const owner = await User.findOne({ company: user.company, role: 'employer', isActive: true }).sort({ createdAt: 1, _id: 1 }).select('_id');
+                    if (owner) { company.primaryEmployer = owner._id; await company.save(); }
+                }
+                if (company.primaryEmployer && String(company.primaryEmployer) !== String(user._id)) {
+                    const route = `${req.baseUrl || ''}${req.path || ''}`;
+                    const scopeMap = [
+                        ['/api/company/employers', 'governance'], ['/api/company/governance', 'governance'],
+                        ['/api/accounting', 'accounting'], ['/api/ai', 'analytics'], ['/api/audit', 'analytics'], ['/api/dashboard', 'analytics'], ['/api/reports', 'analytics'], ['/api/customers', 'analytics'],
+                        ['/api/users', 'people'], ['/api/attendance', 'workforce'], ['/api/salary', 'workforce'],
+                        ['/api/inventory', 'inventory'], ['/api/receipts', 'operations'], ['/api/withdrawals', 'operations'], ['/api/cashier', 'operations'], ['/api/pre-records', 'operations'],
+                        ['/api/communication', 'communications'], ['/api/whatsapp', 'communications'],
+                        ['/api/company', 'administration'], ['/api/branches', 'administration'], ['/api/warehouses', 'administration'], ['/api/devices', 'administration'], ['/api/policies', 'administration'], ['/api/end-of-day', 'analytics']
+                    ];
+                    const requiredScope = scopeMap.find(([prefix]) => route.startsWith(prefix))?.[1] || 'governance';
+                    if (!user.employerPermissions?.includes(requiredScope)) {
+                        logger.warn('[Auth] Co-employer scope denied', { userId: user._id, requiredScope, route });
+                        return res.status(403).json({ success: false, error: `Primary employer has not granted ${requiredScope} access` });
+                    }
+                }
+            }
+        }
         next();
     } catch (err) {
         logger.error('[Auth] protect failed:', err.message);
@@ -109,6 +145,18 @@ const authorizeFunction = (...functions) => {
     };
 };
 
+// Explicit employer delegation for a single task. Permissions are loaded from
+// MongoDB by protect on every request, so revocation takes effect immediately.
+const authorizeTask = (...requirements) => (req, res, next) => {
+    if (!req.user) return res.status(401).json({ success: false, error: 'Not authenticated' });
+    const granted = requirements.some(key => key.includes('.')
+        ? req.user.delegatedPermissions?.some(p => p.key === key && p.enabled)
+        : req.user.activeRoles?.includes(key));
+    if (req.user.role === 'employer' || granted) return next();
+    logger.warn('[Auth] Delegated task denied', { userId: req.user._id, requirements, path: req.path });
+    return res.status(403).json({ success: false, error: 'Employer has not granted this task permission' });
+};
+
 // ============================================================
 // authorizeBranch — branch context enforcement
 // Employer can switch (X-Branch-Id header) or see all.
@@ -158,4 +206,4 @@ const authorizeBranch = async (req, res, next) => {
     }
 };
 
-module.exports = { protect, authorize, authorizeFunction, authorizeBranch };
+module.exports = { protect, authorize, authorizeFunction, authorizeTask, authorizeBranch };

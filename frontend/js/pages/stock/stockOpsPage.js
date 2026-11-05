@@ -2,17 +2,34 @@
     constructor() { this.items = []; }
     async render(container) {
         container.innerHTML = `
+            <div class="card mb-4"><div class="card-header"><h3><i class="fas fa-file-import"></i> Enter: Pending Purchase Records</h3></div><div class="card-body"><div id="pre-record-table">${ui.loader()}</div></div></div>
             <div class="card mb-4">
                 <div class="card-header">
                     <h3><i class="fas fa-boxes"></i> Stock Operations</h3>
-                    <button class="btn btn-primary" onclick="pageStockOps.showCreate()"><i class="fas fa-plus"></i> Add Item</button>
+                    ${(auth.user.role === 'employer' || auth.user.activeRoles?.some(r=>['stock','manager'].includes(r))) ? '<button class="btn btn-primary" onclick="pageStockOps.showCreate()"><i class="fas fa-plus"></i> Add Item</button>' : ''}
                 </div>
                 <div class="card-body">
                     <div class="search-bar mb-3"><i class="fas fa-search"></i><input type="search" placeholder="Search..." oninput="pageStockOps.search(this.value)"></div>
                     <div id="stock-table">${ui.loader()}</div>
                 </div>
             </div>`;
-        await this.load();
+        await Promise.all([this.load(), this.loadPreRecords()]);
+    }
+    async loadPreRecords() {
+        try {
+            const res = await preRecordApi.list({ status: 'pending', limit: 100 });
+            this.preRecords = res.preRecords || [];
+            const el = document.getElementById('pre-record-table');
+            if (!this.preRecords.length) { el.innerHTML = ui.emptyState('No purchases waiting to be entered', 'fa-check-circle'); return; }
+            el.innerHTML = this.preRecords.map((p, i) => `<div class="p-3 mb-2 rounded" style="background:var(--bg-primary)"><div class="flex justify-between items-center"><div><strong>${p.preRecordId}</strong> · ${p.buyerName || 'Buyer'} · ${p.warehouse?.name || ''}</div><button class="btn btn-primary btn-sm" onclick="pageStockOps.confirmPreRecord(${i})">Confirm and enter stock</button></div><div class="mt-2">${(p.items || []).map(it => `<span class="mr-2">${it.itemName} × ${it.quantity}</span>${it.imageUrl ? `<img src="${it.imageUrl}" alt="Product" style="width:42px;height:42px;object-fit:cover">` : ''}`).join('')}</div>${p.receiptImageUrl ? `<a href="${p.receiptImageUrl}" target="_blank" rel="noopener">View purchase receipt</a>` : ''}</div>`).join('');
+        } catch (err) { const el = document.getElementById('pre-record-table'); if (el) el.innerHTML = ui.errorState(err.message); }
+    }
+    confirmPreRecord(i) {
+        const p = this.preRecords?.[i]; if (!p) return;
+        ui.confirm('Confirm purchase', `Add ${p.totalItems} units from ${p.preRecordId} to inventory?`, async () => {
+            try { await preRecordApi.confirm(p._id, {}); ui.showToast('success', 'Entered', 'Purchase added to inventory'); this.loadPreRecords(); this.load(); }
+            catch (err) { ui.showToast('error', 'Cannot confirm', err.message); }
+        });
     }
     async load() {
         try {
@@ -40,7 +57,7 @@
         c.innerHTML = ui.generateTable(headers, this.items, { actions });
     }
     async showCreate() {
-        const whRes = await warehousesApi.list({});
+        const whRes = auth.user.role === 'employer' ? await warehousesApi.list({}) : await inventoryApi.options();
         const whs = whRes.warehouses || [];
         if (!whs.length) { ui.showToast('warning', 'No warehouses', 'Create a warehouse first'); return; }
         const content = `

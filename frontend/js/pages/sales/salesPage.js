@@ -36,6 +36,7 @@
                     <div class="form-group"><label>Customer Phone</label><input type="tel" id="s-phone"></div>
                 </div>
                 <div class="form-group"><label>Store Location *</label><input type="text" id="s-store" required></div>
+                <div class="form-group"><label>Attach receipt/photo (optional)</label><input type="file" id="s-image" accept="image/*" capture="environment"></div>
                 <div class="form-group"><label>Item *</label><select id="s-item" required onchange="pageSales.price(this)">
                     <option value="">Select</option>
                     ${items.map(i => `<option value="${i._id}" data-price="${i.sellingPrice}">${i.name} (${i.itemCode}) — ${ui.formatCurrency(i.sellingPrice)}</option>`).join('')}
@@ -56,7 +57,9 @@
         const itemId = document.getElementById('s-item').value;
         if (!itemId) { ui.showToast('warning', 'Validation', 'Select an item'); return; }
         try {
+            const receiptImage = await utils.readImageFile('s-image');
             await receiptsApi.create({
+                receiptImage,
                 items: [{ inventoryItem: itemId, quantity: parseFloat(document.getElementById('s-qty').value), unitPrice: parseFloat(document.getElementById('s-price').value) }],
                 paymentMethod: document.getElementById('s-method').value,
                 storeLocation: document.getElementById('s-store').value,

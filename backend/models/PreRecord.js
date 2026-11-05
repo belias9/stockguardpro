@@ -180,4 +180,5 @@ preRecordSchema.set('toObject', { virtuals: true });
 
 preRecordSchema.statics.STATUS = STATUS;
 
+preRecordSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('PreRecord', preRecordSchema);

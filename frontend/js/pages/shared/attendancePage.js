@@ -102,13 +102,40 @@
                 <div class="card-header">
                     <h3><i class="fas fa-fingerprint"></i> My Attendance</h3>
                     <div class="flex gap-2">
+                        <button class="btn btn-secondary" id="passkey-enroll" onclick="pageAttendance.enrollPasskey()">Enroll phone passkey</button>
                         <button class="btn btn-primary" onclick="pageAttendance.showClockInModal()"><i class="fas fa-fingerprint"></i> Clock In</button>
                         <button class="btn btn-success" onclick="pageAttendance.showClockOutModal()"><i class="fas fa-sign-out-alt"></i> Clock Out</button>
                     </div>
                 </div>
                 <div class="card-body"><div id="emp-att-summary">${ui.loader()}</div></div>
             </div>`;
+        await this.loadPasskeyStatus();
         await this.loadEmployeeAttendance();
+    }
+
+    async loadPasskeyStatus() {
+        try { const res = await api.get('/attendance/passkeys/status'); const button = document.getElementById('passkey-enroll'); if (button) button.textContent = res.enrolled ? `Passkey enrolled (${res.count}) — add another` : 'Enroll phone passkey'; }
+        catch (err) { console.warn('Passkey status unavailable', err.message); }
+    }
+
+    async enrollPasskey() {
+        try {
+            if (!window.SimpleWebAuthnBrowser?.startRegistration) throw new Error('Passkey browser support is unavailable. Use a modern browser over HTTPS.');
+            const { options } = await api.post('/attendance/passkeys/register/options', {});
+            const credential = await window.SimpleWebAuthnBrowser.startRegistration({ optionsJSON: options });
+            const result = await api.post('/attendance/passkeys/register/verify', credential);
+            ui.showToast('success', 'Passkey enrolled', result.message); await this.loadPasskeyStatus();
+        } catch (err) { ui.showToast('error', 'Passkey enrollment failed', err.message); }
+    }
+
+    async clockWithPasskey(action) {
+        try {
+            const { options } = await api.post('/attendance/passkeys/clock/options', { action });
+            const assertion = await window.SimpleWebAuthnBrowser.startAuthentication({ optionsJSON: options });
+            const result = await api.post('/attendance/passkeys/clock/verify', assertion);
+            ui.closeModal(); ui.showToast('success', action === 'clock_in' ? 'Clocked In' : 'Clocked Out', result.message || 'Passkey verified and attendance recorded');
+            await this.loadEmployeeAttendance();
+        } catch (err) { ui.showToast('error', 'Passkey attendance failed', err.message); }
     }
 
     async loadEmployeeAttendance() {
@@ -130,19 +157,16 @@
         ui.showModal('Clock In', `
             <div class="text-center p-4">
                 <i class="fas fa-fingerprint fa-5x text-primary mb-3"></i>
-                <p>Place finger on the attendance device</p>
-                <button class="btn btn-primary mt-3" onclick="pageAttendance.doClockIn()">Verify & Clock In</button>
+                <p>Use your signed-in account, or your enrolled phone passkey for device verification.</p>
+                <button class="btn btn-primary mt-3" onclick="pageAttendance.doClockIn()">Clock In</button>
+                <button class="btn btn-secondary mt-3" onclick="pageAttendance.clockWithPasskey('clock_in')">Clock in with passkey</button>
             </div>`, '');
     }
 
     async doClockIn() {
         try {
             await attendanceApi.clockIn({
-                employeeId: auth.user._id,
-                companyId: auth.user.company,
-                fingerprintVerified: true,
-                deviceId: 'WEB_' + Date.now(),
-                method: 'fingerprint'
+                employeeId: auth.user._id
             });
             ui.closeModal();
             ui.showToast('success', 'Clocked In', 'Attendance recorded');
@@ -154,19 +178,16 @@
         ui.showModal('Clock Out', `
             <div class="text-center p-4">
                 <i class="fas fa-fingerprint fa-5x text-success mb-3"></i>
-                <p>Place finger on the attendance device</p>
-                <button class="btn btn-success mt-3" onclick="pageAttendance.doClockOut()">Verify & Clock Out</button>
+                <p>Use your signed-in account, or your enrolled phone passkey for device verification.</p>
+                <button class="btn btn-success mt-3" onclick="pageAttendance.doClockOut()">Clock Out</button>
+                <button class="btn btn-secondary mt-3" onclick="pageAttendance.clockWithPasskey('clock_out')">Clock out with passkey</button>
             </div>`, '');
     }
 
     async doClockOut() {
         try {
             await attendanceApi.clockOut({
-                employeeId: auth.user._id,
-                companyId: auth.user.company,
-                fingerprintVerified: true,
-                deviceId: 'WEB_' + Date.now(),
-                method: 'fingerprint'
+                employeeId: auth.user._id
             });
             ui.closeModal();
             ui.showToast('success', 'Clocked Out', 'Attendance recorded');

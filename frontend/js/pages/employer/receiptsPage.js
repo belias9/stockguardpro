@@ -72,6 +72,7 @@
                     <div class="form-group"><label>Customer Phone</label><input type="tel" id="rc-phone" placeholder="+237..."></div>
                 </div>
                 <div class="form-group"><label>Store Location *</label><input type="text" id="rc-store" required placeholder="Main Store"></div>
+                <div class="form-group"><label>Attach receipt/photo (optional)</label><input type="file" id="rc-image" accept="image/*" capture="environment"></div>
                 <h4 class="mb-2">Items</h4>
                 <div id="rc-rows">${rowsHtml}</div>
                 <button type="button" class="btn btn-secondary btn-sm mb-3" onclick="pageReceipts.addRow()">+ Add Item</button>
@@ -102,8 +103,10 @@
         const items = this.rows.filter(r => r.itemId && r.qty > 0).map(r => ({ inventoryItem: r.itemId, quantity: r.qty, unitPrice: r.price }));
         if (!items.length) { ui.showToast('warning', 'Validation', 'Add at least one item'); return; }
         try {
+            const receiptImage = await utils.readImageFile('rc-image');
             await receiptsApi.create({
                 items,
+                receiptImage,
                 paymentMethod: document.getElementById('rc-method').value,
                 storeLocation: store,
                 customer: { name: document.getElementById('rc-cust').value || 'Walk-in Customer', phone: document.getElementById('rc-phone').value }
@@ -115,15 +118,25 @@
     async print(index) {
         const r = this.receipts[index];
         if (!r) return;
+        const w = window.open('', '_blank');
+        if (!w) { ui.showToast('warning', 'Print blocked', 'Allow pop-ups to print this receipt'); return; }
         try {
             const res = await fetch(`${CONFIG.API_BASE_URL}/receipts/${r.id || r._id}/print`, {
                 headers: auth.getAuthHeaders()
             });
+            if (!res.ok) throw new Error(await res.text() || 'Receipt could not be loaded');
             const html = await res.text();
-            const w = window.open('', '_blank');
-            w.document.write(html);
+            // The print HTML is returned by the API but written into a popup
+            // whose base origin is the frontend. Rebase its relative logo URL
+            // to the backend so LAN clients can load the image.
+            const printDocument = new DOMParser().parseFromString(html, 'text/html');
+            const logo = printDocument.querySelector('img.logo');
+            if (logo?.getAttribute('src')) {
+                logo.src = utils.resolveAssetUrl(logo.getAttribute('src'));
+            }
+            w.document.write(`<!DOCTYPE html>${printDocument.documentElement.outerHTML}`);
             w.document.close();
-        } catch (err) { ui.showToast('error', 'Print failed', err.message); }
+        } catch (err) { w.close(); ui.showToast('error', 'Print failed', err.message); }
     }
 
     async sendWA(index) {

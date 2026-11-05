@@ -7,6 +7,11 @@ const Inventory = require('../models/Inventory');
 const Warehouse = require('../models/Warehouse');
 const auditHelper = require('../utils/auditHelper');
 
+function validImageReference(value) {
+    return !value || ((typeof value === 'string') && value.length <= 1100000 &&
+        (/^https:\/\//i.test(value) || /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(value)));
+}
+
 // ============================================================
 // List pre-records
 // ============================================================
@@ -39,7 +44,7 @@ async function listPreRecords(req) {
 
     const total = await PreRecord.countDocuments(query);
 
-    const viewerRole = req.user.role === 'employer' ? 'employer' : 'shop_buyer';
+    const viewerRole = req.user.role === 'employer' ? 'employer' : (req.user.activeRoles?.includes('manager') ? 'manager' : (req.user.activeRoles?.includes('stock') ? (req.user.isMainStock ? 'stock_main' : 'stock_assist') : 'shop_buyer'));
 
     return {
         preRecords: preRecords.map(p => p.toPublicJSON(viewerRole)),
@@ -66,7 +71,8 @@ async function getPreRecord(req, id) {
         }
     }
 
-    return pr.toPublicJSON(req.user.role === 'employer' ? 'employer' : 'shop_buyer');
+    const viewerRole = req.user.role === 'employer' ? 'employer' : (req.user.activeRoles?.includes('manager') ? 'manager' : (req.user.activeRoles?.includes('stock') ? (req.user.isMainStock ? 'stock_main' : 'stock_assist') : 'shop_buyer'));
+    return pr.toPublicJSON(viewerRole);
 }
 
 // ============================================================
@@ -84,6 +90,9 @@ async function createPreRecord(req, data) {
 
     if (!receiptImageUrl) {
         throw { status: 400, message: 'Receipt image is required' };
+    }
+    if (!validImageReference(receiptImageUrl) || items.some(item => !validImageReference(item.imageUrl))) {
+        throw { status: 400, message: 'Images must be HTTPS links or JPEG/PNG/WebP files under 800 KB' };
     }
 
     if (!warehouseId) {
@@ -122,12 +131,6 @@ async function createPreRecord(req, data) {
             imageUrl: item.imageUrl || null
         };
     });
-
-    // Last item must have image OR global receiptImageUrl serves as receipt
-    const lastItem = processedItems[processedItems.length - 1];
-    if (!lastItem.imageUrl) {
-        lastItem.imageUrl = receiptImageUrl;
-    }
 
     const preRecord = new PreRecord({
         company: req.user.company,
@@ -229,6 +232,7 @@ async function confirmPreRecord(req, id, notes) {
         });
 
         if (inv) {
+            if (item.imageUrl && !inv.images?.length) inv.images = [item.imageUrl];
             // Add to existing
             inv.recordMovement({
                 type: 'in',
@@ -252,6 +256,7 @@ async function confirmPreRecord(req, id, notes) {
                 quantity: 0,
                 unitCost: item.unitCost,
                 sellingPrice: item.sellingPrice || item.unitCost * 1.5,
+                images: item.imageUrl ? [item.imageUrl] : [],
                 createdBy: req.user._id
             });
             inv.recordMovement({

@@ -98,6 +98,9 @@ async function createWithdrawal(req, data) {
     // Validate source warehouse
     const srcWh = await Warehouse.findOne({ _id: sourceWarehouseId, company: req.user.company, isActive: true });
     if (!srcWh) throw { status: 404, message: 'Source warehouse not found or inactive' };
+    if (req.user.role !== 'employer' && srcWh.branch.toString() !== req.user.branch.toString()) {
+        throw { status: 403, message: 'You can only request transfers from your own branch' };
+    }
 
     // Validate destination branch
     const dstBranch = await Branch.findOne({ _id: destinationBranchId, company: req.user.company, isActive: true });
@@ -188,7 +191,7 @@ async function approveWithdrawal(req, id, comments) {
     if (!withdrawal) throw { status: 404, message: 'Withdrawal not found' };
 
     // Manager or employer only (function check done in route, but double-check)
-    if (req.user.role !== 'employer' && !req.user.activeRoles?.includes('manager')) {
+    if (req.user.role !== 'employer' && !req.user.activeRoles?.includes('manager') && !req.user.delegatedPermissions?.some(p => p.key === 'withdrawals.approve' && p.enabled)) {
         throw { status: 403, message: 'Only manager or employer can approve withdrawals' };
     }
 
@@ -222,7 +225,7 @@ async function rejectWithdrawal(req, id, reason) {
     const withdrawal = await Withdrawal.findOne({ _id: id, company: req.user.company });
     if (!withdrawal) throw { status: 404, message: 'Withdrawal not found' };
 
-    if (req.user.role !== 'employer' && !req.user.activeRoles?.includes('manager')) {
+    if (req.user.role !== 'employer' && !req.user.activeRoles?.includes('manager') && !req.user.delegatedPermissions?.some(p => p.key === 'withdrawals.approve' && p.enabled)) {
         throw { status: 403, message: 'Only manager or employer can reject withdrawals' };
     }
 

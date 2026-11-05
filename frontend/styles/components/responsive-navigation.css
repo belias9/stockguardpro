@@ -1,0 +1,66 @@
+/* Responsive drawer behavior supplements the desktop sidebar styles. */
+.sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    border: 0;
+    padding: 0;
+    background: rgba(15, 23, 42, .48);
+    cursor: pointer;
+}
+
+@media (max-width: 1024px) {
+    .sidebar {
+        width: min(var(--sidebar-width), 86vw);
+        height: 100vh;
+        height: 100dvh;
+        box-shadow: 0 12px 36px rgba(0, 0, 0, .22);
+    }
+
+    .sidebar.open {
+        width: min(var(--sidebar-width), 86vw);
+    }
+
+    .top-bar {
+        padding-inline: .75rem;
+        gap: .5rem;
+    }
+
+    .top-bar-actions {
+        gap: .5rem;
+        min-width: 0;
+    }
+
+    .company-badge {
+        padding: .45rem .6rem;
+    }
+
+    .branch-select {
+        max-width: 9rem;
+    }
+}
+
+@media (max-width: 560px) {
+    .top-bar-title h2 {
+        max-width: 36vw;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 1rem;
+    }
+
+    .company-badge span,
+    #sync-badge {
+        display: none;
+    }
+
+    .branch-select {
+        max-width: 7rem;
+        font-size: .75rem;
+    }
+
+    .page-content {
+        padding: .75rem;
+        min-width: 0;
+    }
+}

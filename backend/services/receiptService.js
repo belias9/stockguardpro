@@ -4,7 +4,7 @@
  */
 const Receipt = require('../models/Receipt');
 const Customization = require('../models/Customization');
-const Company = require('../models/Company');
+const Company = require('../models/company');
 const Inventory = require('../models/Inventory');
 const Warehouse = require('../models/Warehouse');
 const PriceApproval = require('../models/PriceApproval');
@@ -62,13 +62,16 @@ async function listReceipts(req) {
 async function createReceipt(req, data) {
     const {
         items, customer, paymentMethod, paymentDetails,
-        storeLocation, stockhouse, notes
+        storeLocation, stockhouse, notes, receiptImage
     } = data;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
         throw { status: 400, message: 'At least one item required' };
     }
     if (!storeLocation) throw { status: 400, message: 'Store location required' };
+    if (receiptImage && !(receiptImage.length <= 1100000 && /^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(receiptImage))) {
+        throw { status: 400, message: 'Receipt photo must be JPEG, PNG, or WebP under 800 KB' };
+    }
 
     const processedItems = [];
     let subtotal = 0, totalCost = 0, totalDiscount = 0, totalTax = 0;
@@ -150,6 +153,7 @@ async function createReceipt(req, data) {
         soldBy: req.user._id,
         soldByName: `${req.user.firstName} ${req.user.lastName}`,
         storeLocation,
+        receiptImage: receiptImage || null,
         isInterBranch,
         isInterWarehouse,
         hasBelowPriceItems,
@@ -209,6 +213,7 @@ async function confirmPayment(req, id, notes) {
 
     receipt.confirmPayment(req.user, notes || '');
     await receipt.save();
+    await require('./ledgerService').postReceipt(receipt);
 
     await auditHelper.log(req, {
         action: 'PAYMENT_CONFIRM',

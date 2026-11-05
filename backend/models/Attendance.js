@@ -24,7 +24,7 @@ const attendanceSchema = new mongoose.Schema({
         fingerprintVerified: { type: Boolean, default: false },
         faceVerified: { type: Boolean, default: false },
         ipAddress: { type: String, default: null },
-        method: { type: String, enum: ['fingerprint', 'face', 'manual', 'web'], default: 'fingerprint' },
+        method: { type: String, enum: ['fingerprint', 'face', 'manual', 'web', 'passkey'], default: 'fingerprint' },
         location: {
             latitude: Number,
             longitude: Number
@@ -39,7 +39,7 @@ const attendanceSchema = new mongoose.Schema({
         fingerprintVerified: { type: Boolean, default: false },
         faceVerified: { type: Boolean, default: false },
         ipAddress: { type: String, default: null },
-        method: { type: String, enum: ['fingerprint', 'face', 'manual', 'web'], default: 'fingerprint' }
+        method: { type: String, enum: ['fingerprint', 'face', 'manual', 'web', 'passkey'], default: 'fingerprint' }
     },
 
     // ============ Status ============
@@ -223,4 +223,5 @@ attendanceSchema.set('toObject', { virtuals: true });
 
 attendanceSchema.statics.ATTENDANCE_STATUS = ATTENDANCE_STATUS;
 
+attendanceSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('Attendance', attendanceSchema);

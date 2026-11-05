@@ -1,10 +1,15 @@
+const isLocalFrontend = ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const isFrontendDevServer = window.location.port === '3000';
+const backendOrigin = isFrontendDevServer
+    ? `${window.location.protocol}//${window.location.hostname}:5000`
+    : (isLocalFrontend ? `${window.location.protocol}//${window.location.hostname}:5000` : window.location.origin);
+
 const CONFIG = {
-    API_BASE_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:5000/api'
-        : '/api',
-    SOCKET_URL: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-        ? 'http://localhost:5000'
-        : window.location.origin,
+    // The frontend dev server (including access over a LAN IP) does not proxy
+    // API requests. Point it directly at the backend instead of requesting
+    // /api from the static frontend server, which returns index.html.
+    API_BASE_URL: `${backendOrigin}/api`,
+    SOCKET_URL: backendOrigin,
     APP_VERSION: '1.0.0',
 
     CURRENCY: 'XAF',

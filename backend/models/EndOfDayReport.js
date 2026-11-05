@@ -145,7 +145,7 @@ endOfDayReportSchema.pre('validate', function (next) {
         const d = new Date(this.date);
         d.setHours(0, 0, 0, 0);
         this.date = d;
-        this.reportDate = d.toISOString().slice(0, 10);
+        this.reportDate = this.reportDate || d.toISOString().slice(0, 10);
     }
     this.updatedAt = Date.now();
     next();

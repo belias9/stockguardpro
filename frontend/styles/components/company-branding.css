@@ -1,0 +1,13 @@
+.company-logo-display {
+    display: block;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    object-fit: contain;
+    border-radius: 5px;
+    background: #fff;
+}
+
+.company-logo-display.hidden {
+    display: none;
+}

@@ -7,6 +7,14 @@ const Warehouse = require('../models/Warehouse');
 const Branch = require('../models/Branch');
 const auditHelper = require('../utils/auditHelper');
 
+function validateItemImages(images) {
+    if (images === undefined) return;
+    if (!Array.isArray(images) || images.length > 5 || images.some(image => typeof image !== 'string' || image.length > 1100000 ||
+        (!/^https:\/\//i.test(image) && !/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/i.test(image)))) {
+        throw { status: 400, message: 'Item photos must be HTTPS links or JPEG/PNG/WebP images under 800 KB (maximum 5)' };
+    }
+}
+
 // ============================================================
 // Determine viewer role for serialization
 // ============================================================
@@ -115,6 +123,7 @@ async function createItem(req, data) {
     const { warehouseId, itemCode, name, description, category, unit, quantity, unitCost, sellingPrice, minStockLevel, reorderPoint, images, barcode, sku, supplier } = data;
 
     if (!warehouseId) throw { status: 400, message: 'Warehouse required' };
+    validateItemImages(images);
 
     // Validate warehouse belongs to user's branch (or company for employer)
     const warehouse = await Warehouse.findOne({ _id: warehouseId, company: req.user.company, isActive: true });
@@ -193,6 +202,7 @@ async function createItem(req, data) {
 // Update item
 // ============================================================
 async function updateItem(req, id, data) {
+    validateItemImages(data.images);
     const item = await Inventory.findOne({ _id: id, company: req.user.company });
     if (!item) throw { status: 404, message: 'Item not found' };
 

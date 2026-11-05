@@ -477,4 +477,5 @@ inventorySchema.statics.DEFAULT_CATEGORIES = DEFAULT_CATEGORIES;
 inventorySchema.statics.DEFAULT_UNITS = DEFAULT_UNITS;
 inventorySchema.statics.MOVEMENT_TYPES = MOVEMENT_TYPES;
 
+inventorySchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('Inventory', inventorySchema);

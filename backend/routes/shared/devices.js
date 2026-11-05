@@ -20,7 +20,7 @@ router.get('/current', protect, async (req, res, next) => {
     } catch (err) { next(err); }
 });
 
-// Register new device (deactivates old automatically)
+// Register an additional device; terminals and phones may coexist.
 router.post('/register', protect, authorize('employer'), [
     body('name').notEmpty(),
     body('deviceId').notEmpty()
@@ -28,9 +28,13 @@ router.post('/register', protect, authorize('employer'), [
     try {
         const { name, deviceId, type = 'phone', assignedTo } = req.body;
         const branchId = req.branch || null;
-
-        // Deactivate all current devices
-        await Device.deactivateAll(req.user.company, branchId, req.user._id);
+        if (!['phone', 'tablet', 'pos', 'scanner', 'biometric_reader'].includes(type)) return res.status(400).json({ success: false, error: 'Unsupported device type' });
+        if (type === 'biometric_reader' && !branchId) return res.status(400).json({ success: false, error: 'Select a branch before registering its biometric terminal' });
+        if (assignedTo) {
+            const User = require('../../models/User');
+            const employee = await User.findOne({ _id: assignedTo, company: req.user.company, role: 'employee', branch: branchId, isActive: true });
+            if (!employee) return res.status(400).json({ success: false, error: 'Assigned employee must be active in the selected branch' });
+        }
 
         // Create new device
         const rawApiKey = Device.generateApiKey();

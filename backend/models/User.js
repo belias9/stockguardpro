@@ -17,6 +17,7 @@ const EMPLOYEE_FUNCTIONS = [
     'shop_buyer',
     'stock',
     'sales',
+    'accounting',
     'none'
 ];
 
@@ -109,6 +110,17 @@ const userSchema = new mongoose.Schema({
         // Currently active roles â€” subset of roles
         // Role can be assigned (in roles) but paused (not in activeRoles)
     },
+    // Employer granted task permissions. Approval-required permissions create
+    // controlled work: the assignee submits it and the employer/approver decides.
+    delegatedPermissions: [{
+        key: { type: String, required: true },
+        enabled: { type: Boolean, default: true },
+        requiresApproval: { type: Boolean, default: false },
+        approver: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        grantedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        grantedAt: { type: Date, default: Date.now }
+    }],
+    employerPermissions: [{ type: String, enum: ['governance', 'people', 'workforce', 'accounting', 'inventory', 'operations', 'communications', 'analytics', 'administration'] }],
 
     // ============ Employee ID ============
     employeeId: {
@@ -152,6 +164,19 @@ const userSchema = new mongoose.Schema({
         ref: 'Device',
         default: null
     },
+    passkeys: [{
+        credentialId: { type: String, required: true },
+        publicKey: { type: String, required: true, select: false },
+        counter: { type: Number, default: 0 },
+        transports: [{ type: String }],
+        deviceType: { type: String, default: 'unknown' },
+        backedUp: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
+        lastUsedAt: { type: Date, default: null }
+    }],
+    passkeyChallenge: { type: String, select: false },
+    passkeyChallengePurpose: { type: String, enum: ['register', 'clock_in', 'clock_out', null], default: null, select: false },
+    passkeyChallengeExpiresAt: { type: Date, select: false },
 
     // ============ Account status ============
     isActive: {
@@ -438,6 +463,8 @@ userSchema.methods.toPublicJSON = function () {
         role: this.role,
         roles: this.roles,
         activeRoles: this.activeRoles,
+        delegatedPermissions: this.delegatedPermissions,
+        employerPermissions: this.employerPermissions,
         employeeId: this.employeeId,
         branch: this.branch,
         company: this.company,

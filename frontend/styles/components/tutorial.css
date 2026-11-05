@@ -1,0 +1,27 @@
+.tutorial-wrap { max-width: 980px; margin: 0 auto; }
+.tutorial-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; padding: 1.5rem; }
+.tutorial-heading h2 { margin: .45rem 0; }
+.tutorial-heading p { margin: 0; color: var(--text-secondary); max-width: 620px; }
+.tutorial-kicker { color: var(--primary-color); font-size: .75rem; font-weight: 700; letter-spacing: .09em; }
+.tutorial-role-picker { display: grid; gap: .45rem; min-width: 190px; color: var(--text-secondary); font-size: .85rem; }
+.tutorial-role-picker select { min-width: 0; border: 1px solid var(--border-color); border-radius: var(--radius-md); background: var(--bg-card); padding: .65rem .75rem; color: var(--text-primary); }
+.tutorial-progress { height: 7px; margin: 1.15rem 0; overflow: hidden; border-radius: 8px; background: var(--border-color); }
+.tutorial-progress span { display: block; height: 100%; border-radius: inherit; background: var(--primary-color); transition: width .2s ease; }
+.tutorial-slide { padding: clamp(1.2rem, 4vw, 2rem); }
+.tutorial-slide-meta { display: flex; justify-content: space-between; gap: 1rem; color: var(--text-secondary); font-size: .85rem; }
+.tutorial-slide h3 { margin: 1rem 0 1.4rem; font-size: clamp(1.3rem, 3vw, 1.8rem); }
+.tutorial-steps { display: grid; gap: 1rem; padding: 0; margin: 0; list-style: none; }
+.tutorial-steps li { display: grid; grid-template-columns: 2rem 1fr; align-items: start; gap: .8rem; line-height: 1.6; }
+.tutorial-step-number { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 50%; background: var(--primary-color); color: white; font-weight: 700; }
+.tutorial-slide-actions { display: flex; justify-content: space-between; align-items: center; gap: .75rem; margin-top: 2rem; padding-top: 1.2rem; border-top: 1px solid var(--border-color); }
+.tutorial-slide-actions button:disabled { opacity: .45; cursor: not-allowed; }
+.tutorial-footer { display: flex; gap: .6rem; align-items: flex-start; margin-top: 1rem; padding: 1rem; border-radius: var(--radius-md); color: var(--text-secondary); background: var(--bg-card); font-size: .9rem; }
+.tutorial-footer i { margin-top: .2rem; color: var(--primary-color); }
+@media (max-width: 650px) {
+    .tutorial-heading { display: grid; }
+    .tutorial-role-picker { width: 100%; }
+    .tutorial-slide-meta { font-size: .75rem; }
+    .tutorial-slide-actions { display: grid; grid-template-columns: 1fr 1fr; }
+    .tutorial-slide-actions #tutorial-open { grid-column: 1 / -1; grid-row: 1; }
+    .tutorial-slide-actions button { justify-content: center; }
+}

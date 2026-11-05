@@ -4,10 +4,23 @@
 const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
-const { protect, authorizeFunction } = require('../../../middleware/auth');
+const { protect, authorizeFunction, authorizeTask } = require('../../../middleware/auth');
 const withdrawalService = require('../../../services/withdrawalService');
 
 router.use(protect);
+
+router.get('/options', async (req, res, next) => {
+    try {
+        const Branch = require('../../../models/Branch');
+        const Warehouse = require('../../../models/Warehouse');
+        const company = req.user.company;
+        const [branches, warehouses] = await Promise.all([
+            Branch.find({ company, isActive: true }).select('_id name code type').sort({ name: 1 }),
+            Warehouse.find({ company, isActive: true, ...(req.user.role === 'employer' ? {} : { branch: req.user.branch }) }).populate('branch', 'name code').select('_id name code branch isDefault').sort({ name: 1 })
+        ]);
+        res.json({ success: true, branches, warehouses });
+    } catch (err) { next(err); }
+});
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);
@@ -30,7 +43,7 @@ router.get('/:id', authorizeFunction('sales', 'stock', 'manager', 'cashier'), as
 });
 
 // POST — create (sales, manager)
-router.post('/', authorizeFunction('sales', 'manager'), [
+router.post('/', authorizeFunction('sales', 'manager', 'stock'), [
     body('items').isArray({ min: 1 }).withMessage('At least one item'),
     body('sourceWarehouseId').notEmpty().withMessage('Source warehouse required'),
     body('destinationBranchId').notEmpty().withMessage('Destination branch required'),
@@ -41,13 +54,13 @@ router.post('/', authorizeFunction('sales', 'manager'), [
 });
 
 // PUT /:id/approve — manager only
-router.put('/:id/approve', authorizeFunction('manager'), async (req, res, next) => {
+router.put('/:id/approve', authorizeTask('withdrawals.approve', 'manager'), async (req, res, next) => {
     try { res.json({ success: true, withdrawal: await withdrawalService.approveWithdrawal(req, req.params.id, req.body.comments) }); }
     catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
 });
 
 // PUT /:id/reject — manager only
-router.put('/:id/reject', authorizeFunction('manager'), [
+router.put('/:id/reject', authorizeTask('withdrawals.approve', 'manager'), [
     body('reason').notEmpty().withMessage('Reason required')
 ], validate, async (req, res, next) => {
     try { res.json({ success: true, withdrawal: await withdrawalService.rejectWithdrawal(req, req.params.id, req.body.reason) }); }

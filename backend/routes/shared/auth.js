@@ -5,7 +5,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const authService = require('../../services/authService');
-const { authLimiter } = require('../../middleware/rateLimiter');
+const { authLimiter } = require('../../middleware/ratelimiter');
 
 const validate = (req, res, next) => {
     const errors = validationResult(req);

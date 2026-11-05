@@ -169,4 +169,5 @@ cashierSessionSchema.set('toObject', { virtuals: true });
 
 cashierSessionSchema.statics.STATUS = STATUS;
 
+cashierSessionSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('CashierSession', cashierSessionSchema);

@@ -6,7 +6,7 @@
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 
-const DEVICE_TYPES = ['phone', 'tablet', 'pos', 'scanner'];
+const DEVICE_TYPES = ['phone', 'tablet', 'pos', 'scanner', 'biometric_reader'];
 
 const deviceSchema = new mongoose.Schema({
     // ============ Tenant ============
@@ -106,16 +106,7 @@ const deviceSchema = new mongoose.Schema({
 // ============================================================
 // Indexes
 // ============================================================
-// Only one active device per company (or per branch if branch-scoped)
-deviceSchema.index(
-    { company: 1, branch: 1, isActive: 1 },
-    {
-        unique: true,
-        partialFilterExpression: { isActive: true }
-        // This enforces "only 1 active device per company/branch"
-        // partialFilterExpression means: unique among docs where isActive = true
-    }
-);
+// Multiple active devices per branch are allowed; deviceId is unique.
 
 // Query: active devices
 deviceSchema.index({ isActive: 1, lastSeenAt: -1 });
@@ -182,7 +173,7 @@ deviceSchema.statics.findActive = function (companyId, branchId = null) {
     const filter = { company: companyId, isActive: true };
     if (branchId) filter.branch = branchId;
     else filter.branch = null;
-    return this.findOne(filter);
+    return this.findOne(filter).sort({ registeredAt: -1 });
 };
 
 // ============================================================

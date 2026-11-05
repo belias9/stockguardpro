@@ -166,7 +166,7 @@ salarySchema.pre('save', function (next) {
     this.earnings.totalEarnings =
         (this.earnings.basePay || 0) +
         (this.earnings.overtimePay || 0) +
-        (this.earnings.bonus || 0) +
+        (this.bonusApproval?.status === 'approved' || this.bonusApproval?.status === 'not_required' ? (this.earnings.bonus || 0) : 0) +
         (this.earnings.allowances || 0) +
         (this.earnings.commission || 0);
 
@@ -269,4 +269,5 @@ salarySchema.set('toObject', { virtuals: true });
 salarySchema.statics.DEDUCTION_TYPES = DEDUCTION_TYPES;
 salarySchema.statics.PAYMENT_STATUS = PAYMENT_STATUS;
 
+salarySchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('Salary', salarySchema);

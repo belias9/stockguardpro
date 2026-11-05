@@ -191,4 +191,5 @@ inventoryAuditSchema.set('toObject', { virtuals: true });
 
 inventoryAuditSchema.statics.STATUS = STATUS;
 
+inventoryAuditSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('InventoryAudit', inventoryAuditSchema);

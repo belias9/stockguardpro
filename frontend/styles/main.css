@@ -12,7 +12,11 @@
 @import url('./components/toasts.css');
 @import url('./components/sidebar.css');
 @import url('./components/topbar.css');
+@import url('./components/responsive-navigation.css');
 @import url('./layouts/auth.css');
 @import url('./layouts/dashboard.css');
 @import url('./components/sync.css');
+@import url('./components/sync-status-errors.css');
+@import url('./components/tutorial.css');
+@import url('./components/company-branding.css');
 .branch-switcher select { padding: 0.375rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); font-size: 0.875rem; }

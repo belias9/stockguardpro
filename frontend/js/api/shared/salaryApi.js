@@ -4,6 +4,7 @@ const salaryApi = {
     pay: (id, data) => api.put(`/salary/${id}/pay`, data),
     addBonus: (id, data) => api.post(`/salary/${id}/bonus`, data),
     approveBonus: (id, data) => api.put(`/salary/${id}/bonus-approval`, data),
+    addDeduction: (id, data) => api.post(`/salary/${id}/deduction`, data),
     requestAdvance: (data) => api.post('/salary/advance', data),
     approveAdvance: (id, data) => api.put(`/salary/${id}/advance`, data),
     dispute: (id, data) => api.post(`/salary/${id}/dispute`, data),

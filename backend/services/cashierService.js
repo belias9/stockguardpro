@@ -79,6 +79,7 @@ async function confirmPayment(req, receiptId, notes) {
     // Confirm the receipt
     receipt.confirmPayment(req.user, notes || '');
     await receipt.save();
+    await require('./ledgerService').postReceipt(receipt);
 
     // Add to cashier session
     const session = await getOrCreateSession(req);

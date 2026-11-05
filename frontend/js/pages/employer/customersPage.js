@@ -1,5 +1,5 @@
 ﻿class CustomersPage {
-    constructor() { this.customers = []; this.current = null; this.receipts = []; }
+    constructor() { this.customers = []; this.current = null; this.receipts = []; this.receiptThreshold = 50000; }
 
     async render(container) {
         if (this.current) return this.renderDetail(container);
@@ -47,16 +47,18 @@
     async open(i) {
         this.current = this.customers[i];
         try {
+            try { const p = await api.get('/company/profile'); this.receiptThreshold = Number(p.company?.settings?.receiptWhatsAppThreshold ?? 50000); } catch {}
             const res = await receiptsApi.list({ limit: 200 });
             const all = res.receipts || [];
             this.receipts = all.filter(r => r.customer?.phone === this.current.phone || r.customer?.name === this.current.name);
+            this.fullReceipts = all;
             this.render(document.getElementById('page-content'));
         } catch (err) { ui.showToast('error', 'Error', err.message); }
     }
 
     async renderDetail(container) {
         const c = this.current;
-        const minThreshold = 50000;
+        const minThreshold = this.receiptThreshold;
         const aboveThreshold = this.receipts.filter(r => (r.totalAmount || 0) >= minThreshold);
         const belowThreshold = this.receipts.filter(r => (r.totalAmount || 0) < minThreshold);
 
@@ -82,7 +84,7 @@
                     ${aboveThreshold.length ? `
                         <div class="table-container"><table>
                             <thead><tr><th>Receipt</th><th>Date</th><th>Total</th><th>Status</th></tr></thead>
-                            <tbody>${aboveThreshold.map(r => `<tr><td>${r.receiptId}</td><td>${ui.formatDate(r.createdAt)}</td><td>${ui.formatCurrency(r.totalAmount)}</td><td>${ui.statusBadge(r.paymentStatus || 'pending')}</td></tr>`).join('')}</tbody>
+                            <tbody>${aboveThreshold.map(r => `<tr><td><button class="btn btn-text text-primary" onclick="pageCustomers.showReceipt('${r._id||r.id}')">${r.receiptId}</button></td><td>${ui.formatDate(r.createdAt)}</td><td>${ui.formatCurrency(r.totalAmount)}</td><td>${ui.statusBadge(r.paymentStatus || 'pending')}</td></tr>`).join('')}</tbody>
                         </table></div>
                     ` : `<p class="text-muted text-sm">No receipts above ${ui.formatCurrency(minThreshold)} yet</p>`}
                 </div>
@@ -102,6 +104,11 @@
     back() {
         this.current = null;
         this.render(document.getElementById('page-content'));
+    }
+    showReceipt(id) {
+        const r=(this.receipts||[]).find(x=>(x._id||x.id)===id);if(!r)return;
+        const rows=(r.items||[]).map(it=>`<tr><td>${it.itemName||it.itemCode}</td><td>${it.quantity} ${it.unit||''}</td><td>${ui.formatCurrency(it.unitPrice)}</td><td>${ui.formatCurrency(it.totalPrice)}</td></tr>`).join('');
+        ui.showModal(`Receipt ${r.receiptId}`,`<p><strong>Customer:</strong> ${r.customer?.name||'Walk-in'} · ${r.customer?.phone||''}</p><p><strong>Date:</strong> ${ui.formatDate(r.createdAt,'long')} · <strong>Payment:</strong> ${r.paymentStatus}</p><div class="table-container"><table><thead><tr><th>Description</th><th>Quantity</th><th>Unit price</th><th>Total</th></tr></thead><tbody>${rows}</tbody></table></div><p class="text-right font-bold mt-2">Total: ${ui.formatCurrency(r.totalAmount)}</p>`);
     }
 }
 const pageCustomers = new CustomersPage();

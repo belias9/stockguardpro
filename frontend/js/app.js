@@ -219,6 +219,7 @@ class StockGuardProApp {
         document.getElementById('sidebar-user-name').textContent = `${auth.user.firstName} ${auth.user.lastName}`;
         document.getElementById('sidebar-user-role').textContent = auth.user.role === 'employer' ? 'Employer' : (auth.user.activeRoles?.[0] || 'Employee');
         document.getElementById('company-name-display').textContent = auth.company.name;
+        await this.refreshCompanyBranding();
 
         // 5. Render sidebar menu
         ui.renderSidebar(resolveMenu(auth.user));
@@ -243,8 +244,38 @@ class StockGuardProApp {
         this.registerPages();
 
         // 9. Navigate to dashboard
-        router.navigate('dashboard');
+        router.navigate(auth.user.mustAcknowledgePolicies ? 'policies' : 'dashboard');
     }
+    async refreshCompanyBranding() {
+        const name = document.getElementById('company-name-display');
+        const image = document.getElementById('company-logo-display');
+        const fallback = document.getElementById('company-branding-icon');
+        if (!name || !image || !fallback || !auth.token) return;
+        try {
+            const response = await api.get('/company/branding');
+            const branding = response.branding || {};
+            if (branding.companyName) name.textContent = branding.companyName;
+            const logoSrc = utils.resolveAssetUrl(branding.logoUrl);
+            if (!logoSrc) {
+                image.removeAttribute('src');
+                image.classList.add('hidden');
+                fallback.classList.remove('hidden');
+                return;
+            }
+            image.onload = () => {
+                image.classList.remove('hidden');
+                fallback.classList.add('hidden');
+            };
+            image.onerror = () => {
+                image.classList.add('hidden');
+                fallback.classList.remove('hidden');
+            };
+            image.src = logoSrc;
+        } catch (err) {
+            console.warn('Company branding could not be loaded:', err.message);
+        }
+    }
+
     async switchBranch(branchId) {
         if (!branchId) {
             auth.setSelectedBranch(null);
@@ -260,9 +291,15 @@ class StockGuardProApp {
    registerPages() {
     // Shared pages
     router.register('dashboard', pageDashboard);
+    router.register('tutorial', pageTutorial);
     router.register('ai', pageAI);
     router.register('attendance', pageAttendance);
     router.register('salary', pageSalary);
+    router.register('accounting', pageAccounting);
+    router.register('permissions', pagePermissions);
+    router.register('policies', pagePolicies);
+    router.register('applicants', pageApplicants);
+    router.register('governance', pageGovernance);
     router.register('messages', pageMessages);
     router.register('settings', pageSettings);
 

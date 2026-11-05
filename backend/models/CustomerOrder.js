@@ -189,4 +189,5 @@ customerOrderSchema.set('toObject', { virtuals: true });
 customerOrderSchema.statics.STATUS = STATUS;
 customerOrderSchema.statics.CHANNELS = CHANNELS;
 
+customerOrderSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('CustomerOrder', customerOrderSchema);

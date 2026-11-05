@@ -8,6 +8,19 @@ const bcrypt = require('bcryptjs');
 const MAX_EMPLOYERS = 3;
 
 const companySchema = new mongoose.Schema({
+    primaryEmployer: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
+    governance: {
+        structure: { type: String, enum: ['private', 'joint_stock'], default: 'private' },
+        shareholders: [{
+            name: { type: String, required: true, trim: true, maxlength: 120 },
+            email: { type: String, trim: true, lowercase: true, maxlength: 160, default: '' },
+            shares: { type: Number, min: 0, default: 0 },
+            ownershipPercent: { type: Number, min: 0, max: 100, default: 0 },
+            votingPercent: { type: Number, min: 0, max: 100, default: 0 }
+        }],
+        updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+        updatedAt: { type: Date, default: null }
+    },
     // ============ Identity ============
     name: {
         type: String,
@@ -94,7 +107,16 @@ const companySchema = new mongoose.Schema({
         closeTime: { type: String, default: '20:00' },
 
         // End of day report
-        endOfDayReportTime: { type: String, default: '22:00' }
+        endOfDayReportTime: { type: String, default: '22:00' },
+        endOfDayManagerSections: {
+            type: [{ type: String, enum: ['goodsBought', 'attendance', 'cashier', 'transfers', 'inventoryAlerts', 'faultyGoods', 'aiInsights'] }],
+            default: ['goodsBought', 'attendance', 'cashier', 'transfers', 'inventoryAlerts', 'faultyGoods']
+        }
+    },
+    whatsappIntegration: {
+        phoneNumberId: { type: String, default: '' },
+        monitoredGroupIds: { type: [String], default: [] },
+        groupAnalysisEnabled: { type: Boolean, default: false }
     },
 
     // ============ Features (toggles) ============

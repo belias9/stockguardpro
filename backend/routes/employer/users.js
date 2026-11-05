@@ -27,6 +27,29 @@ router.get('/:id', async (req, res, next) => {
     catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
 });
 
+// Only employers can grant or revoke task permissions.
+router.put('/:id/permissions', async (req, res, next) => {
+    try {
+        const allowed = ['accounting.view', 'accounting.company_view', 'accounting.loans_view', 'accounting.create', 'accounting.approve', 'payroll.manage', 'inventory.adjust', 'receipts.create', 'withdrawals.approve'];
+        const permissions = req.body.permissions;
+        if (!Array.isArray(permissions) || permissions.some(p => !p || !allowed.includes(p.key))) {
+            return res.status(400).json({ success: false, error: 'Invalid permission list' });
+        }
+        const User = require('../../models/User');
+        const target = await User.findOne({ _id: req.params.id, company: req.user.company, role: 'employee' });
+        if (!target) return res.status(404).json({ success: false, error: 'Employee not found' });
+        const normalized = [...permissions];
+        if (normalized.some(p => ['accounting.company_view', 'accounting.loans_view', 'accounting.create', 'accounting.approve'].includes(p.key)) && !normalized.some(p => p.key === 'accounting.view')) normalized.push({ key: 'accounting.view' });
+        target.delegatedPermissions = normalized.map(p => ({
+            key: p.key, enabled: true, requiresApproval: !!p.requiresApproval,
+            grantedBy: req.user._id, grantedAt: new Date()
+        }));
+        await target.save();
+        await require('../../utils/auditHelper').log(req, { action: 'USER_PERMISSIONS_UPDATE', entityType: 'User', entityId: target._id, entityName: target.fullName, changes: { after: { permissions: target.delegatedPermissions.map(p => p.key) } } });
+        res.json({ success: true, user: target.toPublicJSON() });
+    } catch (err) { next(err); }
+});
+
 router.post('/', [
     body('firstName').trim().notEmpty().withMessage('First name required'),
     body('lastName').trim().notEmpty().withMessage('Last name required'),

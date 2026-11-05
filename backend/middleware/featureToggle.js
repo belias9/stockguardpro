@@ -3,7 +3,7 @@
  * Per-company feature flags. Checked before route executes.
  * Company model gets a `features` object: { ai, whatsapp, sync, ... }
  */
-const Company = require('../models/Company');
+const Company = require('../models/company');
 const logger = require('../utils/logger');
 
 // Cache features per company (60s) to avoid DB hit on every request

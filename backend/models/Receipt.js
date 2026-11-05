@@ -95,6 +95,7 @@ const receiptSchema = new mongoose.Schema({
         email: { type: String, default: '' },
         customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'Customer', default: null }
     },
+    receiptImage: { type: String, default: null, maxlength: 1100000 },
 
     // ============ Seller ============
     soldBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
@@ -246,6 +247,7 @@ receiptSchema.methods.toPublicJSON = function (viewerRole = 'sales') {
         totalTax: this.totalTax,
         totalAmount: this.totalAmount,
         customer: this.customer,
+        receiptImage: this.receiptImage,
         soldBy: this.soldBy,
         soldByName: this.soldByName,
         storeLocation: this.storeLocation,
@@ -305,4 +307,5 @@ receiptSchema.statics.PAYMENT_STATUS = PAYMENT_STATUS;
 receiptSchema.statics.PAYMENT_METHODS = PAYMENT_METHODS;
 receiptSchema.statics.RECEIPT_STATUS = RECEIPT_STATUS;
 
+receiptSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('Receipt', receiptSchema);

@@ -19,9 +19,5 @@ logger.info('[Local Server] Starting in LOCAL mode', {
     cloud: process.env.CLOUD_API_URL || 'not configured'
 });
 
-// Start the sync worker
-const syncService = require('./services/syncService');
-syncService.startSyncWorker();
-
 // Boot the normal server
 require('./server');

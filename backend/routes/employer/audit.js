@@ -4,7 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../../middleware/auth');
-const { exportLimiter } = require('../../middleware/rateLimiter');
+const { exportLimiter } = require('../../middleware/ratelimiter');
 const auditService = require('../../services/auditService');
 
 router.use(protect, authorize('employer'));

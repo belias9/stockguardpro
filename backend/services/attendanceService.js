@@ -1,28 +1,22 @@
-﻿/**
+/**
  * Attendance Service
  * Clock in/out with biometric verification.
  */
 const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Device = require('../models/Device');
-const Company = require('../models/Company');
+const Company = require('../models/company');
 const auditHelper = require('../utils/auditHelper');
 
 // ============================================================
-// Clock in (public â€” requires device key)
+// Clock in (public — requires device key)
 // ============================================================
 async function clockIn(req, data) {
-    const {
-        employeeId, companyId, deviceId,
-        fingerprintTemplate, faceTemplate,
-        fingerprintVerified, faceVerified,
-        method = 'fingerprint',
-        location
-    } = data;
-
-    if (!employeeId || !companyId || !deviceId) {
-        throw { status: 400, message: 'employeeId, companyId, and deviceId required' };
-    }
+    const employeeId = req.user?._id;
+    const companyId = req.user?.company;
+    const deviceId = 'WEB_SESSION';
+    const method = req.passkeyVerified ? 'passkey' : 'web';
+    if (!employeeId || !companyId) throw { status: 401, message: 'Sign in to record attendance' };
 
     // Find employee
     const employee = await User.findOne({
@@ -33,34 +27,7 @@ async function clockIn(req, data) {
     });
     if (!employee) throw { status: 404, message: 'Employee not found or inactive' };
 
-    // Find device
-    const device = await Device.findOne({
-        company: companyId,
-        deviceId,
-        isActive: true
-    }).select('+apiKey');
-    if (!device) throw { status: 404, message: 'Device not registered or inactive' };
-
-    // Verify device API key (header)
-    const deviceKey = req.headers['x-device-key'];
-    if (!deviceKey) {
-        throw { status: 401, message: 'Device key missing' };
-    }
-    const validKey = await device.verifyApiKey(deviceKey);
-    if (!validKey) {
-        throw { status: 401, message: 'Invalid device key' };
-    }
-
-    // Biometric verification (either fingerprint OR face)
-    if (fingerprintTemplate) {
-        const match = await employee.verifyBiometric(fingerprintTemplate, 'fingerprint');
-        if (!match) throw { status: 401, message: 'Fingerprint does not match' };
-    } else if (faceTemplate) {
-        const match = await employee.verifyBiometric(faceTemplate, 'face');
-        if (!match) throw { status: 401, message: 'Face does not match' };
-    } else if (!fingerprintVerified && !faceVerified) {
-        throw { status: 401, message: 'Biometric verification required' };
-    }
+    if (employee.role !== 'employee') throw { status: 403, message: 'Only employees can use self-service attendance' };
 
     // Get company settings
     const company = await Company.findById(companyId);
@@ -92,18 +59,15 @@ async function clockIn(req, data) {
 
     attendance.recordClockIn({
         deviceId,
-        deviceRef: device._id,
-        fingerprintVerified: !!fingerprintTemplate || !!fingerprintVerified,
-        faceVerified: !!faceTemplate || !!faceVerified,
+        deviceRef: null,
+        fingerprintVerified: false,
+        faceVerified: false,
         ipAddress: req.ip,
         method,
         expectedStart
     });
 
     await attendance.save();
-
-    // Update device last seen
-    await device.markSeen(req.ip);
 
     await auditHelper.log(req, {
         action: 'ATTENDANCE_CLOCK_IN',
@@ -123,19 +87,14 @@ async function clockIn(req, data) {
 }
 
 // ============================================================
-// Clock out (public â€” requires device key)
+// Clock out (public — requires device key)
 // ============================================================
 async function clockOut(req, data) {
-    const {
-        employeeId, companyId, deviceId,
-        fingerprintTemplate, faceTemplate,
-        fingerprintVerified, faceVerified,
-        method = 'fingerprint'
-    } = data;
-
-    if (!employeeId || !companyId || !deviceId) {
-        throw { status: 400, message: 'employeeId, companyId, and deviceId required' };
-    }
+    const employeeId = req.user?._id;
+    const companyId = req.user?.company;
+    const deviceId = 'WEB_SESSION';
+    const method = req.passkeyVerified ? 'passkey' : 'web';
+    if (!employeeId || !companyId) throw { status: 401, message: 'Sign in to record attendance' };
 
     const employee = await User.findOne({
         _id: employeeId,
@@ -144,28 +103,7 @@ async function clockOut(req, data) {
     });
     if (!employee) throw { status: 404, message: 'Employee not found' };
 
-    const device = await Device.findOne({
-        company: companyId,
-        deviceId,
-        isActive: true
-    }).select('+apiKey');
-    if (!device) throw { status: 404, message: 'Device not registered or inactive' };
-
-    const deviceKey = req.headers['x-device-key'];
-    if (!deviceKey || !(await device.verifyApiKey(deviceKey))) {
-        throw { status: 401, message: 'Invalid device key' };
-    }
-
-    // Biometric
-    if (fingerprintTemplate) {
-        const match = await employee.verifyBiometric(fingerprintTemplate, 'fingerprint');
-        if (!match) throw { status: 401, message: 'Fingerprint does not match' };
-    } else if (faceTemplate) {
-        const match = await employee.verifyBiometric(faceTemplate, 'face');
-        if (!match) throw { status: 401, message: 'Face does not match' };
-    } else if (!fingerprintVerified && !faceVerified) {
-        throw { status: 401, message: 'Biometric verification required' };
-    }
+    if (employee.role !== 'employee') throw { status: 403, message: 'Only employees can use self-service attendance' };
 
     const company = await Company.findById(companyId);
     const expectedEnd = company.settings?.workingHours?.end || '17:00';
@@ -185,9 +123,9 @@ async function clockOut(req, data) {
 
     attendance.recordClockOut({
         deviceId,
-        deviceRef: device._id,
-        fingerprintVerified: !!fingerprintTemplate || !!fingerprintVerified,
-        faceVerified: !!faceTemplate || !!faceVerified,
+        deviceRef: null,
+        fingerprintVerified: false,
+        faceVerified: false,
         ipAddress: req.ip,
         method,
         expectedEnd
@@ -273,6 +211,12 @@ async function getEmployeeAttendance(req, employeeId, query) {
     // Verify employee
     const employee = await User.findOne({ _id: employeeId, company: req.user.company });
     if (!employee) throw { status: 404, message: 'Employee not found' };
+    if (req.user.role !== 'employer' && String(employee.branch) !== String(req.user.branch)) {
+        throw { status: 403, message: 'You can only view attendance in your branch' };
+    }
+    if (req.user.role === 'employer' && req.branch && String(employee.branch) !== String(req.branch)) {
+        throw { status: 403, message: 'Employee is outside the selected branch' };
+    }
 
     let dateQuery = {};
     if (month && year) {
@@ -306,7 +250,7 @@ async function getEmployeeAttendance(req, employeeId, query) {
 }
 
 // ============================================================
-// Submit absence reason (employee â€” self)
+// Submit absence reason (employee — self)
 // ============================================================
 async function submitAbsenceReason(req, data) {
     const { date, reason, documentUrl } = data;
@@ -345,7 +289,7 @@ async function submitAbsenceReason(req, data) {
 }
 
 // ============================================================
-// Auto-mark absent (cron â€” runs at 23:59)
+// Auto-mark absent (cron — runs at 23:59)
 // ============================================================
 async function autoMarkAbsent() {
     const logger = require('../utils/logger');
@@ -405,9 +349,6 @@ async function setAttendanceDevice(req, employeeId) {
 
     const employee = await User.findOne({ _id: employeeId, company: req.user.company });
     if (!employee) throw { status: 404, message: 'Employee not found' };
-
-    // Deactivate existing
-    await Device.deleteMany({ company: req.user.company, branch: null });
 
     // Create new device based on employee
     const rawKey = Device.generateApiKey();

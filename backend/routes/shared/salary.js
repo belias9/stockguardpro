@@ -42,6 +42,14 @@ router.put('/:id/bonus-approval', async (req, res, next) => {
     catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
 });
 
+router.post('/:id/deduction', [
+    body('type').isIn(['absence', 'late', 'advance', 'loan', 'tax', 'pension', 'insurance', 'other']),
+    body('amount').isFloat({ min: 0.01 }), body('description').optional().isString().isLength({ max: 250 })
+], validate, async (req, res, next) => {
+    try { res.json({ success: true, salary: await salaryService.addDeduction(req, req.params.id, req.body) }); }
+    catch (err) { if (err.status) return res.status(err.status).json({ success: false, error: err.message }); next(err); }
+});
+
 router.post('/advance', [
     body('amount').isNumeric(),
     body('reason').optional()

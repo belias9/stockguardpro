@@ -36,6 +36,16 @@ const ENV = {
         if (major < 18) {
             throw new Error(`Node.js 18+ required. Found v${nodeVersion}`);
         }
+        if (this.isProduction) {
+            for (const key of ['JWT_SECRET', 'JWT_REFRESH_SECRET']) {
+                if (!process.env[key] || process.env[key].length < 32) throw new Error(`${key} must be set to a unique secret of at least 32 characters in production`);
+            }
+            if (process.env.JWT_SECRET === process.env.JWT_REFRESH_SECRET) throw new Error('JWT_SECRET and JWT_REFRESH_SECRET must be different');
+            if (!process.env.MONGODB_URI && this.isCloud) throw new Error('MONGODB_URI is required in production cloud mode');
+            if (process.env.APP_MODE === 'local' && process.env.CLOUD_API_URL && (!process.env.SYNC_SECRET || process.env.SYNC_SECRET.length < 32)) {
+                throw new Error('SYNC_SECRET of at least 32 characters is required for local-to-cloud synchronization');
+            }
+        }
     }
 };
 

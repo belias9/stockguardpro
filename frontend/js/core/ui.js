@@ -144,13 +144,52 @@ class UIManager {
     toggleSidebar() {
         const sb = document.getElementById('sidebar');
         if (!sb) return;
+        if (window.matchMedia('(max-width: 1024px)').matches) {
+            sb.classList.remove('collapsed');
+            const willOpen = !sb.classList.contains('open');
+            sb.classList.toggle('open', willOpen);
+            document.getElementById('sidebar-toggle')?.setAttribute('aria-expanded', String(willOpen));
+            if (willOpen) {
+                let backdrop = document.getElementById('sidebar-backdrop');
+                if (!backdrop) {
+                    backdrop = document.createElement('button');
+                    backdrop.type = 'button';
+                    backdrop.id = 'sidebar-backdrop';
+                    backdrop.className = 'sidebar-backdrop';
+                    backdrop.setAttribute('aria-label', 'Close navigation menu');
+                    backdrop.addEventListener('click', () => this.closeMobileSidebar());
+                    document.body.appendChild(backdrop);
+                }
+            } else this.closeMobileSidebar();
+            return;
+        }
         sb.classList.toggle('collapsed');
         localStorage.setItem('sidebar_collapsed', sb.classList.contains('collapsed'));
     }
 
+    closeMobileSidebar() {
+        document.getElementById('sidebar')?.classList.remove('open');
+        document.getElementById('sidebar-backdrop')?.remove();
+        document.getElementById('sidebar-toggle')?.setAttribute('aria-expanded', 'false');
+    }
+
     initSidebar() {
         const sb = document.getElementById('sidebar');
-        if (sb && localStorage.getItem('sidebar_collapsed') === 'true') sb.classList.add('collapsed');
+        if (!sb) return;
+        const applyViewport = () => {
+            if (window.matchMedia('(max-width: 1024px)').matches) {
+                sb.classList.remove('collapsed');
+                this.closeMobileSidebar();
+            } else {
+                this.closeMobileSidebar();
+                sb.classList.toggle('collapsed', localStorage.getItem('sidebar_collapsed') === 'true');
+            }
+        };
+        applyViewport();
+        if (!this._sidebarResizeBound) {
+            window.addEventListener('resize', applyViewport);
+            this._sidebarResizeBound = true;
+        }
     }
 }
 

@@ -8,6 +8,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const { createServer } = require('http');
+const path = require('path');
 
 const ENV = require('./config/environment');
 const { connectDB } = require('./config/db');
@@ -15,12 +16,10 @@ const logger = require('./utils/logger');
 
 // Middleware
 const { sanitize } = require('./middleware/sanitizers');
-const { globalLimiter } = require('./middleware/rateLimiter');
+const { globalLimiter } = require('./middleware/ratelimiter');
 const { branchContext } = require('./middleware/branchContext');
 const requestLogger = require('./middleware/requestLogger');
-const { errorHandler, notFoundHandler } = require('./middleware/errorHandler');
- 
-app.use('/uploads', express.static('uploads'));
+const { errorHandler, notFoundHandler } = require('./middleware/errorhandler');
 
 // Socket.IO
 const { initSocket } = require('./config/socket');
@@ -30,7 +29,6 @@ const healthRoute = require('./routes/health');
 
 const app = express();
 const httpServer = createServer(app);
-
 // ============================================================
 // 1. Security headers (helmet)
 // ============================================================
@@ -52,11 +50,32 @@ app.use(helmet({
 
 app.disable('x-powered-by');
 
+// Only company logos are public assets. Private policy files use an
+// authenticated company-scoped download route instead of static hosting.
+app.use('/uploads/logos', express.static(path.join(__dirname, 'uploads', 'logos'), {
+    dotfiles: 'deny',
+    index: false,
+    fallthrough: false,
+    // The LAN frontend runs on a different origin (port 3000) from the API
+    // (port 5000). Logos are intentionally public branding assets, so allow
+    // browsers to display only these static files cross-origin.
+    setHeaders: res => res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin')
+}));
+
 // ============================================================
 // 2. CORS
 // ============================================================
+const configuredClientOrigin = process.env.CLIENT_URL || 'http://localhost:3000';
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
+    // During local development, allow the browser's current origin so staff
+    // can use the app from another device on the same LAN. Production remains
+    // restricted to the configured frontend origin.
+    origin: (origin, callback) => {
+        if (!origin || origin === configuredClientOrigin || process.env.NODE_ENV !== 'production') {
+            return callback(null, true);
+        }
+        return callback(new Error('Origin is not allowed by CORS'));
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Branch-Id', 'X-Device-Key'],
@@ -94,19 +113,9 @@ app.post('/api/whatsapp/webhook', webhookRaw, (req, res) => {
     }
     try {
         const body = JSON.parse(rawBody);
-        if (body.entry) {
-            for (const entry of body.entry) {
-                for (const change of entry.changes || []) {
-                    for (const message of change.value?.messages || []) {
-                        logger.info('[WhatsApp] Incoming', {
-                            from: message.from,
-                            type: message.type,
-                            text: message.text?.body?.substring(0, 100)
-                        });
-                    }
-                }
-            }
-        }
+        require('./services/whatsappIngestionService').processWebhookBody(body)
+            .then(result => logger.info('[WhatsApp] Verified webhook processed', result))
+            .catch(err => logger.error('[WhatsApp] Ingestion failed:', err.message));
     } catch (err) {
         logger.error('[WhatsApp] Webhook parse error:', err.message);
     }
@@ -171,10 +180,14 @@ app.use('/api/inventory-mode', require('./routes/employee/manager/inventory-mode
 // Shared
 // Integrations
 app.use('/api/ai', require('./routes/shared/ai'));
+app.use('/api/applications', require('./routes/shared/applications'));
+app.use('/api/policies', require('./routes/shared/policies'));
+app.use('/api/end-of-day', require('./routes/shared/endOfDay'));
 app.use('/api/whatsapp', require('./routes/shared/whatsapp'));
 app.use('/api/communication', require('./routes/shared/communication'));
 app.use('/api/attendance', require('./routes/shared/attendance'));
 app.use('/api/salary', require('./routes/shared/salary'));
+app.use('/api/accounting', require('./routes/shared/accounting'));
 app.use('/api/customers', require('./routes/shared/customers'));
 app.use('/api/dashboard', require('./routes/shared/dashboard'));
 app.use('/api/sync', require('./routes/shared/sync'));

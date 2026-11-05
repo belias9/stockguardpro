@@ -128,4 +128,5 @@ customerSchema.methods.toPublicJSON = function (viewerRole = 'sales') {
 customerSchema.set('toJSON', { virtuals: true });
 customerSchema.set('toObject', { virtuals: true });
 
+customerSchema.plugin(require('../plugins/offlineSync'));
 module.exports = mongoose.model('Customer', customerSchema);

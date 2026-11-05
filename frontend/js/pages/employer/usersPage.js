@@ -47,7 +47,7 @@
     }
 
     showCreate() {
-        const fn = ['manager','cashier','shop_buyer','stock','sales','none'];
+        const fn = ['manager','cashier','shop_buyer','stock','sales','accounting','none'];
         const content = `
             <form id="uc-form">
                 <div class="grid-2 gap-3">
@@ -120,7 +120,7 @@
         const u = this.users[index];
         if (!u) return;
         this.editingId = u.id || u._id;
-        const allRoles = ['manager','cashier','shop_buyer','stock','sales'];
+        const allRoles = ['manager','cashier','shop_buyer','stock','sales','accounting'];
         const assigned = u.roles || [];
         const active = u.activeRoles || [];
         const content = `

@@ -1,7 +1,7 @@
 /**
  * Auth Service — FIXED version
  */
-const Company = require('../models/Company');
+const Company = require('../models/company');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const auditHelper = require('../utils/auditHelper');
@@ -119,6 +119,13 @@ async function userLogin(req, { email, password, companyId }) {
     await user.save();
 
     const tokens = generateTokens(user);
+    const governanceCompany = user.role === 'employer' ? await Company.findById(user.company).select('primaryEmployer') : null;
+    let mustAcknowledgePolicies = false;
+    if (user.role === 'employee') {
+        const Policy = require('../models/CompanyPolicy');
+        const required = await Policy.find({ company: user.company, active: true, requiresAcknowledgment: true }).select('version acknowledgments.employee acknowledgments.version');
+        mustAcknowledgePolicies = required.some(p => !p.acknowledgments.some(a => String(a.employee) === String(user._id) && a.version === p.version));
+    }
 
     await auditHelper.log(req, {
         action: 'LOGIN',
@@ -144,6 +151,9 @@ async function userLogin(req, { email, password, companyId }) {
             branch: user.branch,
             company: user.company,
             baseSalary: user.baseSalary
+            ,employerPermissions: user.employerPermissions || [],
+            isPrimaryEmployer: user.role === 'employer' ? String(governanceCompany?.primaryEmployer) === String(user._id) : false,
+            mustAcknowledgePolicies
         }
     };
 }
@@ -176,6 +186,8 @@ async function registerCompany(req, { name, email, phone, password, address }) {
         firstName: 'Admin', lastName: 'User',
         email, phone, password
     });
+    company.primaryEmployer = employer._id;
+    await company.save();
 
     const tokens = generateTokens(employer);
 
